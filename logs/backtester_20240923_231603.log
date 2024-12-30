@@ -1,0 +1,188 @@
+2024-09-23 23:16:04,780 - backtester - INFO - Initialized portfolio with 10000 equally allocated to ['NIPPON INDIA NIFTY 50 VALUE 20 INDEX FUND - DIRECT Plan - IDCW Option', 'BANDHAN NIFTY200 MOMENTUM 30 INDEX FUND - GROWTH - DIRECT PLAN']
+2024-09-23 23:16:04,800 - backtester - INFO - Couldn't find date 2022-01-01 00:00:00 in the index
+2024-09-23 23:16:04,800 - backtester - INFO - Couldn't find date 2022-01-02 00:00:00 in the index
+2024-09-23 23:16:04,801 - backtester - INFO - SIP frequency is: monthly, today is : 2022-01-03 00:00:00
+2024-09-23 23:16:04,809 - backtester - INFO - SIP frequency is: monthly, today is : 2022-01-04 00:00:00
+2024-09-23 23:16:04,813 - backtester - INFO - SIP frequency is: monthly, today is : 2022-01-05 00:00:00
+2024-09-23 23:16:04,816 - backtester - INFO - SIP frequency is: monthly, today is : 2022-01-06 00:00:00
+2024-09-23 23:16:04,818 - backtester - INFO - SIP frequency is: monthly, today is : 2022-01-07 00:00:00
+2024-09-23 23:16:04,821 - backtester - INFO - Couldn't find date 2022-01-08 00:00:00 in the index
+2024-09-23 23:16:04,822 - backtester - INFO - Couldn't find date 2022-01-09 00:00:00 in the index
+2024-09-23 23:16:04,822 - backtester - INFO - SIP frequency is: monthly, today is : 2022-01-10 00:00:00
+2024-09-23 23:16:04,825 - backtester - INFO - SIP frequency is: monthly, today is : 2022-01-11 00:00:00
+2024-09-23 23:16:04,828 - backtester - INFO - SIP frequency is: monthly, today is : 2022-01-12 00:00:00
+2024-09-23 23:16:04,830 - backtester - INFO - SIP frequency is: monthly, today is : 2022-01-13 00:00:00
+2024-09-23 23:16:04,832 - backtester - INFO - SIP frequency is: monthly, today is : 2022-01-14 00:00:00
+2024-09-23 23:16:04,834 - backtester - INFO - Couldn't find date 2022-01-15 00:00:00 in the index
+2024-09-23 23:16:04,834 - backtester - INFO - Couldn't find date 2022-01-16 00:00:00 in the index
+2024-09-23 23:16:04,835 - backtester - INFO - SIP frequency is: monthly, today is : 2022-01-17 00:00:00
+2024-09-23 23:16:04,837 - backtester - INFO - SIP frequency is: monthly, today is : 2022-01-18 00:00:00
+2024-09-23 23:16:04,839 - backtester - INFO - SIP frequency is: monthly, today is : 2022-01-19 00:00:00
+2024-09-23 23:16:04,842 - backtester - INFO - SIP frequency is: monthly, today is : 2022-01-20 00:00:00
+2024-09-23 23:16:04,844 - backtester - INFO - SIP frequency is: monthly, today is : 2022-01-21 00:00:00
+2024-09-23 23:16:04,847 - backtester - INFO - Couldn't find date 2022-01-22 00:00:00 in the index
+2024-09-23 23:16:04,847 - backtester - INFO - Couldn't find date 2022-01-23 00:00:00 in the index
+2024-09-23 23:16:04,848 - backtester - INFO - SIP frequency is: monthly, today is : 2022-01-24 00:00:00
+2024-09-23 23:16:04,850 - backtester - INFO - SIP frequency is: monthly, today is : 2022-01-25 00:00:00
+2024-09-23 23:16:04,852 - backtester - INFO - Couldn't find date 2022-01-26 00:00:00 in the index
+2024-09-23 23:16:04,853 - backtester - INFO - SIP frequency is: monthly, today is : 2022-01-27 00:00:00
+2024-09-23 23:16:04,855 - backtester - INFO - SIP frequency is: monthly, today is : 2022-01-28 00:00:00
+2024-09-23 23:16:04,858 - backtester - INFO - Couldn't find date 2022-01-29 00:00:00 in the index
+2024-09-23 23:16:04,859 - backtester - INFO - Couldn't find date 2022-01-30 00:00:00 in the index
+2024-09-23 23:16:04,859 - backtester - INFO - SIP frequency is: monthly, today is : 2022-01-31 00:00:00
+2024-09-23 23:16:04,862 - backtester - INFO - SIP frequency is: monthly, today is : 2022-02-01 00:00:00
+2024-09-23 23:16:04,862 - backtester - INFO - Applied SIP of 1000 on 2022-02-01
+2024-09-23 23:16:04,864 - backtester - INFO - SIP frequency is: monthly, today is : 2022-02-02 00:00:00
+2024-09-23 23:16:04,867 - backtester - INFO - SIP frequency is: monthly, today is : 2022-02-03 00:00:00
+2024-09-23 23:16:04,869 - backtester - INFO - SIP frequency is: monthly, today is : 2022-02-04 00:00:00
+2024-09-23 23:16:04,872 - backtester - INFO - Couldn't find date 2022-02-05 00:00:00 in the index
+2024-09-23 23:16:04,873 - backtester - INFO - Couldn't find date 2022-02-06 00:00:00 in the index
+2024-09-23 23:16:04,873 - backtester - INFO - SIP frequency is: monthly, today is : 2022-02-07 00:00:00
+2024-09-23 23:16:04,876 - backtester - INFO - SIP frequency is: monthly, today is : 2022-02-08 00:00:00
+2024-09-23 23:16:04,878 - backtester - INFO - SIP frequency is: monthly, today is : 2022-02-09 00:00:00
+2024-09-23 23:16:04,880 - backtester - INFO - SIP frequency is: monthly, today is : 2022-02-10 00:00:00
+2024-09-23 23:16:04,883 - backtester - INFO - SIP frequency is: monthly, today is : 2022-02-11 00:00:00
+2024-09-23 23:16:04,886 - backtester - INFO - Couldn't find date 2022-02-12 00:00:00 in the index
+2024-09-23 23:16:04,886 - backtester - INFO - Couldn't find date 2022-02-13 00:00:00 in the index
+2024-09-23 23:16:04,887 - backtester - INFO - SIP frequency is: monthly, today is : 2022-02-14 00:00:00
+2024-09-23 23:16:04,889 - backtester - INFO - SIP frequency is: monthly, today is : 2022-02-15 00:00:00
+2024-09-23 23:16:04,892 - backtester - INFO - SIP frequency is: monthly, today is : 2022-02-16 00:00:00
+2024-09-23 23:16:04,894 - backtester - INFO - SIP frequency is: monthly, today is : 2022-02-17 00:00:00
+2024-09-23 23:16:04,897 - backtester - INFO - SIP frequency is: monthly, today is : 2022-02-18 00:00:00
+2024-09-23 23:16:04,900 - backtester - INFO - Couldn't find date 2022-02-19 00:00:00 in the index
+2024-09-23 23:16:04,900 - backtester - INFO - Couldn't find date 2022-02-20 00:00:00 in the index
+2024-09-23 23:16:04,901 - backtester - INFO - SIP frequency is: monthly, today is : 2022-02-21 00:00:00
+2024-09-23 23:16:04,904 - backtester - INFO - SIP frequency is: monthly, today is : 2022-02-22 00:00:00
+2024-09-23 23:16:04,906 - backtester - INFO - SIP frequency is: monthly, today is : 2022-02-23 00:00:00
+2024-09-23 23:16:04,909 - backtester - INFO - SIP frequency is: monthly, today is : 2022-02-24 00:00:00
+2024-09-23 23:16:04,912 - backtester - INFO - SIP frequency is: monthly, today is : 2022-02-25 00:00:00
+2024-09-23 23:16:04,915 - backtester - INFO - Couldn't find date 2022-02-26 00:00:00 in the index
+2024-09-23 23:16:04,915 - backtester - INFO - Couldn't find date 2022-02-27 00:00:00 in the index
+2024-09-23 23:16:04,916 - backtester - INFO - SIP frequency is: monthly, today is : 2022-02-28 00:00:00
+2024-09-23 23:16:04,919 - backtester - INFO - Couldn't find date 2022-03-01 00:00:00 in the index
+2024-09-23 23:16:04,919 - backtester - INFO - SIP frequency is: monthly, today is : 2022-03-02 00:00:00
+2024-09-23 23:16:04,922 - backtester - INFO - SIP frequency is: monthly, today is : 2022-03-03 00:00:00
+2024-09-23 23:16:04,925 - backtester - INFO - SIP frequency is: monthly, today is : 2022-03-04 00:00:00
+2024-09-23 23:16:04,929 - backtester - INFO - Couldn't find date 2022-03-05 00:00:00 in the index
+2024-09-23 23:16:04,929 - backtester - INFO - Couldn't find date 2022-03-06 00:00:00 in the index
+2024-09-23 23:16:04,929 - backtester - INFO - SIP frequency is: monthly, today is : 2022-03-07 00:00:00
+2024-09-23 23:16:04,933 - backtester - INFO - SIP frequency is: monthly, today is : 2022-03-08 00:00:00
+2024-09-23 23:16:04,936 - backtester - INFO - SIP frequency is: monthly, today is : 2022-03-09 00:00:00
+2024-09-23 23:16:04,939 - backtester - INFO - SIP frequency is: monthly, today is : 2022-03-10 00:00:00
+2024-09-23 23:16:04,942 - backtester - INFO - SIP frequency is: monthly, today is : 2022-03-11 00:00:00
+2024-09-23 23:16:04,946 - backtester - INFO - Couldn't find date 2022-03-12 00:00:00 in the index
+2024-09-23 23:16:04,946 - backtester - INFO - Couldn't find date 2022-03-13 00:00:00 in the index
+2024-09-23 23:16:04,947 - backtester - INFO - SIP frequency is: monthly, today is : 2022-03-14 00:00:00
+2024-09-23 23:16:04,950 - backtester - INFO - SIP frequency is: monthly, today is : 2022-03-15 00:00:00
+2024-09-23 23:16:04,953 - backtester - INFO - SIP frequency is: monthly, today is : 2022-03-16 00:00:00
+2024-09-23 23:16:04,957 - backtester - INFO - SIP frequency is: monthly, today is : 2022-03-17 00:00:00
+2024-09-23 23:16:04,960 - backtester - INFO - Couldn't find date 2022-03-18 00:00:00 in the index
+2024-09-23 23:16:04,961 - backtester - INFO - Couldn't find date 2022-03-19 00:00:00 in the index
+2024-09-23 23:16:04,961 - backtester - INFO - Couldn't find date 2022-03-20 00:00:00 in the index
+2024-09-23 23:16:04,962 - backtester - INFO - SIP frequency is: monthly, today is : 2022-03-21 00:00:00
+2024-09-23 23:16:04,965 - backtester - INFO - SIP frequency is: monthly, today is : 2022-03-22 00:00:00
+2024-09-23 23:16:04,973 - backtester - INFO - SIP frequency is: monthly, today is : 2022-03-23 00:00:00
+2024-09-23 23:16:05,005 - backtester - INFO - SIP frequency is: monthly, today is : 2022-03-24 00:00:00
+2024-09-23 23:16:05,011 - backtester - INFO - SIP frequency is: monthly, today is : 2022-03-25 00:00:00
+2024-09-23 23:16:05,019 - backtester - INFO - Couldn't find date 2022-03-26 00:00:00 in the index
+2024-09-23 23:16:05,020 - backtester - INFO - Couldn't find date 2022-03-27 00:00:00 in the index
+2024-09-23 23:16:05,020 - backtester - INFO - SIP frequency is: monthly, today is : 2022-03-28 00:00:00
+2024-09-23 23:16:05,024 - backtester - INFO - SIP frequency is: monthly, today is : 2022-03-29 00:00:00
+2024-09-23 23:16:05,028 - backtester - INFO - SIP frequency is: monthly, today is : 2022-03-30 00:00:00
+2024-09-23 23:16:05,032 - backtester - INFO - SIP frequency is: monthly, today is : 2022-03-31 00:00:00
+2024-09-23 23:16:05,034 - backtester - INFO - SIP frequency is: monthly, today is : 2022-04-01 00:00:00
+2024-09-23 23:16:05,035 - backtester - INFO - Applied SIP of 1000 on 2022-04-01
+2024-09-23 23:16:05,036 - backtester - INFO - Couldn't find date 2022-04-02 00:00:00 in the index
+2024-09-23 23:16:05,037 - backtester - INFO - Couldn't find date 2022-04-03 00:00:00 in the index
+2024-09-23 23:16:05,037 - backtester - INFO - SIP frequency is: monthly, today is : 2022-04-04 00:00:00
+2024-09-23 23:16:05,039 - backtester - INFO - SIP frequency is: monthly, today is : 2022-04-05 00:00:00
+2024-09-23 23:16:05,041 - backtester - INFO - SIP frequency is: monthly, today is : 2022-04-06 00:00:00
+2024-09-23 23:16:05,043 - backtester - INFO - SIP frequency is: monthly, today is : 2022-04-07 00:00:00
+2024-09-23 23:16:05,045 - backtester - INFO - SIP frequency is: monthly, today is : 2022-04-08 00:00:00
+2024-09-23 23:16:05,047 - backtester - INFO - Couldn't find date 2022-04-09 00:00:00 in the index
+2024-09-23 23:16:05,047 - backtester - INFO - Couldn't find date 2022-04-10 00:00:00 in the index
+2024-09-23 23:16:05,048 - backtester - INFO - SIP frequency is: monthly, today is : 2022-04-11 00:00:00
+2024-09-23 23:16:05,050 - backtester - INFO - SIP frequency is: monthly, today is : 2022-04-12 00:00:00
+2024-09-23 23:16:05,052 - backtester - INFO - SIP frequency is: monthly, today is : 2022-04-13 00:00:00
+2024-09-23 23:16:05,054 - backtester - INFO - Couldn't find date 2022-04-14 00:00:00 in the index
+2024-09-23 23:16:05,054 - backtester - INFO - Couldn't find date 2022-04-15 00:00:00 in the index
+2024-09-23 23:16:05,055 - backtester - INFO - Couldn't find date 2022-04-16 00:00:00 in the index
+2024-09-23 23:16:05,055 - backtester - INFO - Couldn't find date 2022-04-17 00:00:00 in the index
+2024-09-23 23:16:05,055 - backtester - INFO - SIP frequency is: monthly, today is : 2022-04-18 00:00:00
+2024-09-23 23:16:05,057 - backtester - INFO - SIP frequency is: monthly, today is : 2022-04-19 00:00:00
+2024-09-23 23:16:05,060 - backtester - INFO - SIP frequency is: monthly, today is : 2022-04-20 00:00:00
+2024-09-23 23:16:05,062 - backtester - INFO - SIP frequency is: monthly, today is : 2022-04-21 00:00:00
+2024-09-23 23:16:05,064 - backtester - INFO - SIP frequency is: monthly, today is : 2022-04-22 00:00:00
+2024-09-23 23:16:05,066 - backtester - INFO - Couldn't find date 2022-04-23 00:00:00 in the index
+2024-09-23 23:16:05,067 - backtester - INFO - Couldn't find date 2022-04-24 00:00:00 in the index
+2024-09-23 23:16:05,067 - backtester - INFO - SIP frequency is: monthly, today is : 2022-04-25 00:00:00
+2024-09-23 23:16:05,070 - backtester - INFO - SIP frequency is: monthly, today is : 2022-04-26 00:00:00
+2024-09-23 23:16:05,072 - backtester - INFO - SIP frequency is: monthly, today is : 2022-04-27 00:00:00
+2024-09-23 23:16:05,074 - backtester - INFO - SIP frequency is: monthly, today is : 2022-04-28 00:00:00
+2024-09-23 23:16:05,076 - backtester - INFO - SIP frequency is: monthly, today is : 2022-04-29 00:00:00
+2024-09-23 23:16:05,078 - backtester - INFO - Couldn't find date 2022-04-30 00:00:00 in the index
+2024-09-23 23:16:05,079 - backtester - INFO - Couldn't find date 2022-05-01 00:00:00 in the index
+2024-09-23 23:16:05,080 - backtester - INFO - SIP frequency is: monthly, today is : 2022-05-02 00:00:00
+2024-09-23 23:16:05,082 - backtester - INFO - Couldn't find date 2022-05-03 00:00:00 in the index
+2024-09-23 23:16:05,082 - backtester - INFO - SIP frequency is: monthly, today is : 2022-05-04 00:00:00
+2024-09-23 23:16:05,084 - backtester - INFO - SIP frequency is: monthly, today is : 2022-05-05 00:00:00
+2024-09-23 23:16:05,086 - backtester - INFO - SIP frequency is: monthly, today is : 2022-05-06 00:00:00
+2024-09-23 23:16:05,088 - backtester - INFO - Couldn't find date 2022-05-07 00:00:00 in the index
+2024-09-23 23:16:05,088 - backtester - INFO - Couldn't find date 2022-05-08 00:00:00 in the index
+2024-09-23 23:16:05,089 - backtester - INFO - SIP frequency is: monthly, today is : 2022-05-09 00:00:00
+2024-09-23 23:16:05,091 - backtester - INFO - SIP frequency is: monthly, today is : 2022-05-10 00:00:00
+2024-09-23 23:16:05,093 - backtester - INFO - SIP frequency is: monthly, today is : 2022-05-11 00:00:00
+2024-09-23 23:16:05,094 - backtester - INFO - SIP frequency is: monthly, today is : 2022-05-12 00:00:00
+2024-09-23 23:16:05,096 - backtester - INFO - SIP frequency is: monthly, today is : 2022-05-13 00:00:00
+2024-09-23 23:16:05,099 - backtester - INFO - Couldn't find date 2022-05-14 00:00:00 in the index
+2024-09-23 23:16:05,099 - backtester - INFO - Couldn't find date 2022-05-15 00:00:00 in the index
+2024-09-23 23:16:05,100 - backtester - INFO - SIP frequency is: monthly, today is : 2022-05-16 00:00:00
+2024-09-23 23:16:05,101 - backtester - INFO - SIP frequency is: monthly, today is : 2022-05-17 00:00:00
+2024-09-23 23:16:05,104 - backtester - INFO - SIP frequency is: monthly, today is : 2022-05-18 00:00:00
+2024-09-23 23:16:05,106 - backtester - INFO - SIP frequency is: monthly, today is : 2022-05-19 00:00:00
+2024-09-23 23:16:05,107 - backtester - INFO - SIP frequency is: monthly, today is : 2022-05-20 00:00:00
+2024-09-23 23:16:05,109 - backtester - INFO - Couldn't find date 2022-05-21 00:00:00 in the index
+2024-09-23 23:16:05,110 - backtester - INFO - Couldn't find date 2022-05-22 00:00:00 in the index
+2024-09-23 23:16:05,110 - backtester - INFO - SIP frequency is: monthly, today is : 2022-05-23 00:00:00
+2024-09-23 23:16:05,112 - backtester - INFO - SIP frequency is: monthly, today is : 2022-05-24 00:00:00
+2024-09-23 23:16:05,113 - backtester - INFO - SIP frequency is: monthly, today is : 2022-05-25 00:00:00
+2024-09-23 23:16:05,116 - backtester - INFO - SIP frequency is: monthly, today is : 2022-05-26 00:00:00
+2024-09-23 23:16:05,118 - backtester - INFO - SIP frequency is: monthly, today is : 2022-05-27 00:00:00
+2024-09-23 23:16:05,120 - backtester - INFO - Couldn't find date 2022-05-28 00:00:00 in the index
+2024-09-23 23:16:05,120 - backtester - INFO - Couldn't find date 2022-05-29 00:00:00 in the index
+2024-09-23 23:16:05,121 - backtester - INFO - SIP frequency is: monthly, today is : 2022-05-30 00:00:00
+2024-09-23 23:16:05,122 - backtester - INFO - SIP frequency is: monthly, today is : 2022-05-31 00:00:00
+2024-09-23 23:16:05,125 - backtester - INFO - SIP frequency is: monthly, today is : 2022-06-01 00:00:00
+2024-09-23 23:16:05,125 - backtester - INFO - Applied SIP of 1000 on 2022-06-01
+2024-09-23 23:16:05,127 - backtester - INFO - SIP frequency is: monthly, today is : 2022-06-02 00:00:00
+2024-09-23 23:16:05,129 - backtester - INFO - SIP frequency is: monthly, today is : 2022-06-03 00:00:00
+2024-09-23 23:16:05,130 - backtester - INFO - Couldn't find date 2022-06-04 00:00:00 in the index
+2024-09-23 23:16:05,131 - backtester - INFO - Couldn't find date 2022-06-05 00:00:00 in the index
+2024-09-23 23:16:05,131 - backtester - INFO - SIP frequency is: monthly, today is : 2022-06-06 00:00:00
+2024-09-23 23:16:05,133 - backtester - INFO - SIP frequency is: monthly, today is : 2022-06-07 00:00:00
+2024-09-23 23:16:05,135 - backtester - INFO - SIP frequency is: monthly, today is : 2022-06-08 00:00:00
+2024-09-23 23:16:05,137 - backtester - INFO - SIP frequency is: monthly, today is : 2022-06-09 00:00:00
+2024-09-23 23:16:05,139 - backtester - INFO - SIP frequency is: monthly, today is : 2022-06-10 00:00:00
+2024-09-23 23:16:05,141 - backtester - INFO - Couldn't find date 2022-06-11 00:00:00 in the index
+2024-09-23 23:16:05,142 - backtester - INFO - Couldn't find date 2022-06-12 00:00:00 in the index
+2024-09-23 23:16:05,142 - backtester - INFO - SIP frequency is: monthly, today is : 2022-06-13 00:00:00
+2024-09-23 23:16:05,144 - backtester - INFO - SIP frequency is: monthly, today is : 2022-06-14 00:00:00
+2024-09-23 23:16:05,146 - backtester - INFO - SIP frequency is: monthly, today is : 2022-06-15 00:00:00
+2024-09-23 23:16:05,148 - backtester - INFO - SIP frequency is: monthly, today is : 2022-06-16 00:00:00
+2024-09-23 23:16:05,149 - backtester - INFO - SIP frequency is: monthly, today is : 2022-06-17 00:00:00
+2024-09-23 23:16:05,152 - backtester - INFO - Couldn't find date 2022-06-18 00:00:00 in the index
+2024-09-23 23:16:05,152 - backtester - INFO - Couldn't find date 2022-06-19 00:00:00 in the index
+2024-09-23 23:16:05,153 - backtester - INFO - SIP frequency is: monthly, today is : 2022-06-20 00:00:00
+2024-09-23 23:16:05,155 - backtester - INFO - SIP frequency is: monthly, today is : 2022-06-21 00:00:00
+2024-09-23 23:16:05,157 - backtester - INFO - SIP frequency is: monthly, today is : 2022-06-22 00:00:00
+2024-09-23 23:16:05,159 - backtester - INFO - SIP frequency is: monthly, today is : 2022-06-23 00:00:00
+2024-09-23 23:16:05,161 - backtester - INFO - SIP frequency is: monthly, today is : 2022-06-24 00:00:00
+2024-09-23 23:16:05,163 - backtester - INFO - Couldn't find date 2022-06-25 00:00:00 in the index
+2024-09-23 23:16:05,163 - backtester - INFO - Couldn't find date 2022-06-26 00:00:00 in the index
+2024-09-23 23:16:05,164 - backtester - INFO - SIP frequency is: monthly, today is : 2022-06-27 00:00:00
+2024-09-23 23:16:05,166 - backtester - INFO - SIP frequency is: monthly, today is : 2022-06-28 00:00:00
+2024-09-23 23:16:05,168 - backtester - INFO - SIP frequency is: monthly, today is : 2022-06-29 00:00:00
+2024-09-23 23:16:05,170 - backtester - INFO - SIP frequency is: monthly, today is : 2022-06-30 00:00:00
+2024-09-23 23:16:05,172 - backtester - INFO - SIP frequency is: monthly, today is : 2022-07-01 00:00:00
+2024-09-23 23:16:05,172 - backtester - INFO - Applied SIP of 1000 on 2022-07-01
+2024-09-23 23:16:05,173 - backtester - INFO - Rebalancing on 2022-07-01

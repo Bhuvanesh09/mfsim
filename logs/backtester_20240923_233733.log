@@ -1,0 +1,20 @@
+2024-09-23 23:37:34,347 - backtester - INFO - Initialized portfolio with 10000 equally allocated to ['NIPPON INDIA NIFTY 50 VALUE 20 INDEX FUND - DIRECT Plan - IDCW Option', 'BANDHAN NIFTY200 MOMENTUM 30 INDEX FUND - GROWTH - DIRECT PLAN']
+2024-09-23 23:37:34,368 - backtester - INFO - Applied SIP of 1000 on 2022-02-01
+2024-09-23 23:37:34,389 - backtester - INFO - Applied SIP of 1000 on 2022-04-01
+2024-09-23 23:37:34,403 - backtester - INFO - Applied SIP of 1000 on 2022-06-01
+2024-09-23 23:37:34,408 - backtester - INFO - Applied SIP of 1000 on 2022-07-01
+2024-09-23 23:37:34,409 - backtester - INFO - Rebalancing on 2022-07-01
+2024-09-23 23:37:34,416 - backtester - INFO - Applied SIP of 1000 on 2022-08-01
+2024-09-23 23:37:34,422 - backtester - INFO - Applied SIP of 1000 on 2022-09-01
+2024-09-23 23:37:34,433 - backtester - INFO - Applied SIP of 1000 on 2022-11-01
+2024-09-23 23:37:34,438 - backtester - INFO - Applied SIP of 1000 on 2022-12-01
+2024-09-23 23:37:34,449 - backtester - INFO - Applied SIP of 1000 on 2023-02-01
+2024-09-23 23:37:34,454 - backtester - INFO - Applied SIP of 1000 on 2023-03-01
+2024-09-23 23:37:34,469 - backtester - INFO - Applied SIP of 1000 on 2023-06-01
+2024-09-23 23:37:34,478 - backtester - INFO - Applied SIP of 1000 on 2023-08-01
+2024-09-23 23:37:34,484 - backtester - INFO - Applied SIP of 1000 on 2023-09-01
+2024-09-23 23:37:34,495 - backtester - INFO - Applied SIP of 1000 on 2023-11-01
+2024-09-23 23:37:34,501 - backtester - INFO - Applied SIP of 1000 on 2023-12-01
+2024-09-23 23:37:34,507 - backtester - INFO - TotalReturn: 1.5
+2024-09-23 23:37:34,509 - backtester - INFO - SharpeRatio: 2.713160150462711
+2024-09-23 23:37:34,510 - backtester - INFO - MaximumDrawdown: 0.0

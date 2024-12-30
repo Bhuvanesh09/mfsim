@@ -1,0 +1,64 @@
+2024-09-23 23:32:49,655 - backtester - INFO - Initialized portfolio with 10000 equally allocated to ['NIPPON INDIA NIFTY 50 VALUE 20 INDEX FUND - DIRECT Plan - IDCW Option', 'BANDHAN NIFTY200 MOMENTUM 30 INDEX FUND - GROWTH - DIRECT PLAN']
+2024-09-23 23:32:49,661 - backtester - INFO - Couldn't find date 2022-01-01 00:00:00 in the index
+2024-09-23 23:32:49,661 - backtester - INFO - Couldn't find date 2022-01-02 00:00:00 in the index
+2024-09-23 23:32:49,666 - backtester - INFO - Couldn't find date 2022-01-08 00:00:00 in the index
+2024-09-23 23:32:49,668 - backtester - INFO - Couldn't find date 2022-01-09 00:00:00 in the index
+2024-09-23 23:32:49,672 - backtester - INFO - Couldn't find date 2022-01-15 00:00:00 in the index
+2024-09-23 23:32:49,673 - backtester - INFO - Couldn't find date 2022-01-16 00:00:00 in the index
+2024-09-23 23:32:49,676 - backtester - INFO - Couldn't find date 2022-01-22 00:00:00 in the index
+2024-09-23 23:32:49,676 - backtester - INFO - Couldn't find date 2022-01-23 00:00:00 in the index
+2024-09-23 23:32:49,678 - backtester - INFO - Couldn't find date 2022-01-26 00:00:00 in the index
+2024-09-23 23:32:49,679 - backtester - INFO - Couldn't find date 2022-01-29 00:00:00 in the index
+2024-09-23 23:32:49,680 - backtester - INFO - Couldn't find date 2022-01-30 00:00:00 in the index
+2024-09-23 23:32:49,681 - backtester - INFO - Applied SIP of 1000 on 2022-02-01
+2024-09-23 23:32:49,683 - backtester - INFO - Couldn't find date 2022-02-05 00:00:00 in the index
+2024-09-23 23:32:49,683 - backtester - INFO - Couldn't find date 2022-02-06 00:00:00 in the index
+2024-09-23 23:32:49,686 - backtester - INFO - Couldn't find date 2022-02-12 00:00:00 in the index
+2024-09-23 23:32:49,686 - backtester - INFO - Couldn't find date 2022-02-13 00:00:00 in the index
+2024-09-23 23:32:49,689 - backtester - INFO - Couldn't find date 2022-02-19 00:00:00 in the index
+2024-09-23 23:32:49,689 - backtester - INFO - Couldn't find date 2022-02-20 00:00:00 in the index
+2024-09-23 23:32:49,691 - backtester - INFO - Couldn't find date 2022-02-26 00:00:00 in the index
+2024-09-23 23:32:49,692 - backtester - INFO - Couldn't find date 2022-02-27 00:00:00 in the index
+2024-09-23 23:32:49,693 - backtester - INFO - Couldn't find date 2022-03-01 00:00:00 in the index
+2024-09-23 23:32:49,694 - backtester - INFO - Couldn't find date 2022-03-05 00:00:00 in the index
+2024-09-23 23:32:49,695 - backtester - INFO - Couldn't find date 2022-03-06 00:00:00 in the index
+2024-09-23 23:32:49,697 - backtester - INFO - Couldn't find date 2022-03-12 00:00:00 in the index
+2024-09-23 23:32:49,698 - backtester - INFO - Couldn't find date 2022-03-13 00:00:00 in the index
+2024-09-23 23:32:49,700 - backtester - INFO - Couldn't find date 2022-03-18 00:00:00 in the index
+2024-09-23 23:32:49,701 - backtester - INFO - Couldn't find date 2022-03-19 00:00:00 in the index
+2024-09-23 23:32:49,701 - backtester - INFO - Couldn't find date 2022-03-20 00:00:00 in the index
+2024-09-23 23:32:49,703 - backtester - INFO - Couldn't find date 2022-03-26 00:00:00 in the index
+2024-09-23 23:32:49,704 - backtester - INFO - Couldn't find date 2022-03-27 00:00:00 in the index
+2024-09-23 23:32:49,706 - backtester - INFO - Applied SIP of 1000 on 2022-04-01
+2024-09-23 23:32:49,707 - backtester - INFO - Couldn't find date 2022-04-02 00:00:00 in the index
+2024-09-23 23:32:49,707 - backtester - INFO - Couldn't find date 2022-04-03 00:00:00 in the index
+2024-09-23 23:32:49,709 - backtester - INFO - Couldn't find date 2022-04-09 00:00:00 in the index
+2024-09-23 23:32:49,709 - backtester - INFO - Couldn't find date 2022-04-10 00:00:00 in the index
+2024-09-23 23:32:49,711 - backtester - INFO - Couldn't find date 2022-04-14 00:00:00 in the index
+2024-09-23 23:32:49,712 - backtester - INFO - Couldn't find date 2022-04-15 00:00:00 in the index
+2024-09-23 23:32:49,712 - backtester - INFO - Couldn't find date 2022-04-16 00:00:00 in the index
+2024-09-23 23:32:49,713 - backtester - INFO - Couldn't find date 2022-04-17 00:00:00 in the index
+2024-09-23 23:32:49,715 - backtester - INFO - Couldn't find date 2022-04-23 00:00:00 in the index
+2024-09-23 23:32:49,715 - backtester - INFO - Couldn't find date 2022-04-24 00:00:00 in the index
+2024-09-23 23:32:49,718 - backtester - INFO - Couldn't find date 2022-04-30 00:00:00 in the index
+2024-09-23 23:32:49,718 - backtester - INFO - Couldn't find date 2022-05-01 00:00:00 in the index
+2024-09-23 23:32:49,719 - backtester - INFO - Couldn't find date 2022-05-03 00:00:00 in the index
+2024-09-23 23:32:49,720 - backtester - INFO - Couldn't find date 2022-05-07 00:00:00 in the index
+2024-09-23 23:32:49,721 - backtester - INFO - Couldn't find date 2022-05-08 00:00:00 in the index
+2024-09-23 23:32:49,722 - backtester - INFO - Couldn't find date 2022-05-14 00:00:00 in the index
+2024-09-23 23:32:49,723 - backtester - INFO - Couldn't find date 2022-05-15 00:00:00 in the index
+2024-09-23 23:32:49,725 - backtester - INFO - Couldn't find date 2022-05-21 00:00:00 in the index
+2024-09-23 23:32:49,725 - backtester - INFO - Couldn't find date 2022-05-22 00:00:00 in the index
+2024-09-23 23:32:49,727 - backtester - INFO - Couldn't find date 2022-05-28 00:00:00 in the index
+2024-09-23 23:32:49,728 - backtester - INFO - Couldn't find date 2022-05-29 00:00:00 in the index
+2024-09-23 23:32:49,729 - backtester - INFO - Applied SIP of 1000 on 2022-06-01
+2024-09-23 23:32:49,730 - backtester - INFO - Couldn't find date 2022-06-04 00:00:00 in the index
+2024-09-23 23:32:49,731 - backtester - INFO - Couldn't find date 2022-06-05 00:00:00 in the index
+2024-09-23 23:32:49,733 - backtester - INFO - Couldn't find date 2022-06-11 00:00:00 in the index
+2024-09-23 23:32:49,733 - backtester - INFO - Couldn't find date 2022-06-12 00:00:00 in the index
+2024-09-23 23:32:49,735 - backtester - INFO - Couldn't find date 2022-06-18 00:00:00 in the index
+2024-09-23 23:32:49,735 - backtester - INFO - Couldn't find date 2022-06-19 00:00:00 in the index
+2024-09-23 23:32:49,737 - backtester - INFO - Couldn't find date 2022-06-25 00:00:00 in the index
+2024-09-23 23:32:49,738 - backtester - INFO - Couldn't find date 2022-06-26 00:00:00 in the index
+2024-09-23 23:32:49,739 - backtester - INFO - Applied SIP of 1000 on 2022-07-01
+2024-09-23 23:32:49,740 - backtester - INFO - Rebalancing on 2022-07-01
