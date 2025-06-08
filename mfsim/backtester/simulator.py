@@ -10,6 +10,7 @@ from mfsim.metrics.metrics_collection import (
     SharpeRatioMetric,
     MaximumDrawdownMetric,
     SortinoRatioMetric,
+    XIRRMetric
 )
 from mfsim.strategies.base_strategy import BaseStrategy
 
@@ -71,6 +72,39 @@ class Simulator:
     @property
     def portfolio_history_df(self):
         return pd.DataFrame.from_records(self.portfolio_history, index="date")
+
+    @property
+    def total_invested(self):
+        """Calculate total amount invested across all purchases"""
+        if not self.portfolio_history:
+            return 0.0
+        df = pd.DataFrame.from_records(self.portfolio_history)
+        return df['amount'].sum()
+
+    def get_portfolio_value(self, date=None):
+        """
+        Calculate the current portfolio value at a given date.
+        If no date is provided, uses the end date of the simulation.
+        """
+        if date is None:
+            date = self.end_date
+        
+        if not self.portfolio_history:
+            return 0.0
+        
+        total_value = 0.0
+        current_portfolio = self.current_portfolio
+        
+        for fund_name, units in current_portfolio.items():
+            try:
+                nav = self.nav_data[fund_name].loc[date]["nav"]
+                fund_value = units * nav
+                total_value += fund_value
+            except KeyError:
+                self.logger.warning(f"NAV data not available for {fund_name} on {date}")
+                continue
+        
+        return total_value
 
     def _load_all_nav_data(self):
         nav_data = {}
@@ -217,6 +251,8 @@ class Simulator:
                 metrics_instances.append(
                     SortinoRatioMetric(frequency=self.strategy.frequency)
                 )
+            elif metric_name.lower() == "xirr":
+                metrics_instances.append(XIRRMetric())
             else:
                 self.logger.warning(f"Unknown metric: {metric_name}")
 

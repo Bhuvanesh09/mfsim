@@ -33,7 +33,9 @@ class BaseStrategy(ABC):
         :param portfolio: Current portfolio holdings
         :param nav_data: Dictionary of NAV series for each fund
         :param current_date: The current date in simulation
-        :return: Updated portfolio holdings
+        :return: List of order dicts to execute (e.g., [{'fund_name': ..., 'amount': ...}])
+            - 'fund_name': Name of the fund
+            - 'amount': Amount to buy (>0) or sell (<0)
         """
         pass
 

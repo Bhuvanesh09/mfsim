@@ -3,7 +3,65 @@
 import numpy as np
 import pandas as pd
 from .base_metric import BaseMetric
+from scipy.optimize import newton
 
+class XIRRMetric(BaseMetric):
+    def calculate(self, portfolio_history, current_portfolio, date, nav_data):
+        """
+        Calculate the XIRR (Extended Internal Rate of Return) of the portfolio.
+
+        :param portfolio_history: DataFrame containing portfolio values over time.
+        :param current_portfolio: Dictionary of current portfolio holdings.
+        :param date: The current date in simulation (datetime object).
+        :param nav_data: Dictionary of NAV series for each fund.
+        :return: Float representing the XIRR of the portfolio.
+        """
+        # Prepare cash flows: negative for investments, positive for withdrawals and final value
+        cash_flows = []
+        dates = []
+
+        # Investments/withdrawals from portfolio_history
+        for idx, row in portfolio_history.iterrows():
+            # If 'date' is not a column, but the index, use idx
+            if 'date' in row:
+                dates.append(row['date'])
+            else:
+                dates.append(idx)
+            cash_flows.append(-row["amount"])
+        # Final portfolio value as a positive cash flow on the current date
+        final_value = 0
+        for fund, units in current_portfolio.items():
+            nav = nav_data[fund]
+            # Handle both cases: 'date' as column or as index
+            if 'date' in nav.columns:
+                nav_on_date = nav.loc[nav['date'] == date, 'nav']
+            elif nav.index.name == 'date':
+                nav_on_date = nav.loc[[date], 'nav'] if date in nav.index else pd.Series([])
+            else:
+                nav_on_date = pd.Series([])
+            if not nav_on_date.empty:
+                final_value += units * nav_on_date.values[0]
+        if final_value != 0:
+            cash_flows.append(final_value)
+            dates.append(date)
+
+        # XIRR calculation using numpy.irr with date adjustment
+        def xnpv(rate, cashflows, dates):
+            t0 = dates[0]
+            return sum([
+                cf / (1 + rate) ** ((d - t0).days / 365.0)
+                for cf, d in zip(cashflows, dates)
+            ])
+
+        def xirr(cashflows, dates, guess=0.1):
+            try:
+                return newton(lambda r: xnpv(r, cashflows, dates), guess)
+            except (RuntimeError, OverflowError):
+                return float('nan')
+
+        if len(cash_flows) < 2:
+            return float('nan')
+        return float(xirr(cash_flows, dates))
 
 class TotalReturnMetric(BaseMetric):
     def calculate(self, portfolio_history, current_portfolio, date, nav_data):
@@ -35,7 +93,16 @@ class TotalReturnMetric(BaseMetric):
         money_invested = portfolio_history["amount"].sum()
         final_value = 0
         for fund, units in current_portfolio.items():
-            final_value += units * nav_data[fund]["nav"].loc[date]
+            nav_df = nav_data[fund]
+            # Handle both cases: 'date' as column or as index
+            if 'date' in nav_df.columns:
+                nav_on_date = nav_df.loc[nav_df['date'] == date, 'nav']
+            elif nav_df.index.name == 'date':
+                nav_on_date = nav_df.loc[[date], 'nav'] if date in nav_df.index else pd.Series([])
+            else:
+                nav_on_date = pd.Series([])
+            if not nav_on_date.empty:
+                final_value += units * nav_on_date.values[0]
         total_return = (final_value / money_invested) - 1
         return float(total_return)
 
@@ -139,11 +206,13 @@ class SharpeRatioMetric(BaseMetric):
 
 
 class MaximumDrawdownMetric(BaseMetric):
-    def calculate(self, portfolio_history, nav_data):
+    def calculate(self, portfolio_history, current_portfolio, date, nav_data):
         """
         Calculate the Maximum Drawdown of the portfolio.
 
         :param portfolio_history: DataFrame containing portfolio values over time
+        :param current_portfolio: Dictionary of current portfolio holdings
+        :param date: The current date in simulation (datetime object).
         :param nav_data: Dictionary of NAV series for each fund
         :return: Maximum Drawdown as a float
         """
@@ -159,11 +228,13 @@ class SortinoRatioMetric(BaseMetric):
         self.risk_free_rate = risk_free_rate
         self.frequency = frequency
 
-    def calculate(self, portfolio_history, nav_data):
+    def calculate(self, portfolio_history, current_portfolio, date, nav_data):
         """
         Calculate the Sortino Ratio of the portfolio.
 
         :param portfolio_history: DataFrame containing portfolio values over time
+        :param current_portfolio: Dictionary of current portfolio holdings
+        :param date: The current date in simulation (datetime object).
         :param nav_data: Dictionary of NAV series for each fund
         :return: Sortino Ratio as a float
         """
