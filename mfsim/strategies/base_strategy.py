@@ -36,3 +36,16 @@ class BaseStrategy(ABC):
         :return: Updated portfolio holdings
         """
         pass
+
+    def update_sip_amount(self, current_date, current_sip_amount: float) -> float:
+        """
+        Allows the strategy to dynamically update the SIP amount.
+        By default, returns the current SIP amount without modification.
+        Subclasses should override this method to implement custom SIP increase logic.
+
+        :param current_date: The current date in the simulation.
+        :param current_sip_amount: The current SIP amount.
+        :return: The (potentially) updated SIP amount.
+        """
+        # self.logger.debug(f"Strategy {self.__class__.__name__} returning SIP amount: {current_sip_amount} for date {current_date}")
+        return current_sip_amount

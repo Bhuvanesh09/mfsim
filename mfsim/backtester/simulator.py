@@ -3,7 +3,7 @@
 import pandas as pd
 import numpy as np
 from datetime import timedelta
-from mfsim.utils.data_loader import DataLoader, get_lowerbound_date
+from mfsim.utils.data_loader import MfApiDataLoader, get_lowerbound_date
 from mfsim.utils.logger import setup_logger
 from mfsim.metrics.metrics_collection import (
     TotalReturnMetric,
@@ -23,6 +23,8 @@ class Simulator:
         strategy: BaseStrategy,
         sip_amount=0,
         sip_frequency="monthly",
+        data_loader=None,
+        **kwargs
     ):
         """
         Initialize the Simulator.
@@ -33,6 +35,7 @@ class Simulator:
         :param strategy: Strategy instance
         :param sip_amount: SIP amount per period (float)
         :param sip_frequency: SIP frequency (e.g., 'monthly')
+        :param data_loader: (optional) Custom DataLoader instance. If None, defaults to MfApiDataLoader.
         """
         self.start_date = pd.to_datetime(start_date)
         self.end_date = pd.to_datetime(end_date)
@@ -41,7 +44,15 @@ class Simulator:
         self.sip_amount = sip_amount
         self.sip_frequency = sip_frequency
         self.logger = setup_logger()
-        self.data_loader = DataLoader()
+        if data_loader is None:
+            self.data_loader = MfApiDataLoader()
+        else:
+            from mfsim.utils.data_loader import BaseDataLoader
+
+            assert isinstance(
+                data_loader, BaseDataLoader
+            ), f"data_loader must be an instance of BaseDataLoader, got {type(data_loader)}"
+            self.data_loader = data_loader
         self.fund_list = self.strategy.fund_list
         self.nav_data = self._load_all_nav_data()
         self.start_date = get_lowerbound_date(
@@ -131,9 +142,13 @@ class Simulator:
         # Iterate through each date
         for date in all_dates:
             if date not in self.nav_data[self.fund_list[0]].index:
-                # self.logger.info(f"Couldn't find date {date} in the index")
+                # self.logger.info(f\"Couldn't find date {date} in the index\")
                 # Skip if NAV data is not available for this date
                 continue
+
+            # Let the strategy update the SIP amount if applicable
+            if self.sip_amount > 0: # Only update if there's an SIP to begin with
+                self.sip_amount = self.strategy.update_sip_amount(date, self.sip_amount)
 
             # Apply SIP
             if self.sip_amount > 0:
