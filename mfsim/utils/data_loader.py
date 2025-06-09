@@ -45,6 +45,20 @@ class BaseDataLoader(ABC):
         """
         pass
 
+    def get_expense_ratio(self, fund_name) -> float:
+        """
+        should return a single float value representing the expense ratio for the fund per year.
+        
+        """
+        return 0
+
+    def get_exit_load(self, fund_name) -> float:
+        """
+        should return a single float value representing the exit load for the fund.
+        If no exit load is applicable, return 0.
+        """
+        return 0
+        
 
 class MfApiDataLoader(BaseDataLoader):
     """

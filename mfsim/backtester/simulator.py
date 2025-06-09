@@ -56,6 +56,8 @@ class Simulator:
             self.data_loader = data_loader
         self.fund_list = self.strategy.fund_list
         self.nav_data = self._load_all_nav_data()
+        self.expense_ratios = self._load_expense_ratios()
+        self.exit_loads = self._get_exit_load()
         self.start_date = get_lowerbound_date(
             self.nav_data[self.fund_list[0]], self.start_date
         )
@@ -105,6 +107,34 @@ class Simulator:
                 continue
         
         return total_value
+
+    def _get_exit_load(self):
+        """
+        Load exit load for each fund from the data loader.
+        Returns a dictionary with fund names as keys and exit loads as values.
+        """
+        exit_loads = {}
+        for fund in self.fund_list:
+            try:
+                exit_loads[fund] = self.data_loader.get_exit_load(fund)
+            except Exception as e:
+                self.logger.error(f"Error loading exit load for {fund}: {e}")
+                exit_loads[fund] = 0.0
+        return exit_loads
+
+    def _load_expense_ratios(self):
+        """
+        Load expense ratios for each fund from the data loader.
+        Returns a dictionary with fund names as keys and expense ratios as values.
+        """
+        expense_ratios = {}
+        for fund in self.fund_list:
+            try:
+                expense_ratios[fund] = self.data_loader.get_expense_ratio(fund)
+            except Exception as e:
+                self.logger.error(f"Error loading expense ratio for {fund}: {e}")
+                expense_ratios[fund] = np.nan
+        return expense_ratios
 
     def _load_all_nav_data(self):
         nav_data = {}
@@ -198,6 +228,27 @@ class Simulator:
                     fund_name = order["fund_name"]
                     amount = order["amount"]
                     self.make_purchase(fund_name, date, amount)
+            
+            # At the start of every calendar year, reduce portfolio using expense ratio
+            if date.month == 1 and date.day == 1:
+                for fund_name, units in self.current_portfolio.items():
+                    expense_ratio = self.expense_ratios.get(fund_name, 0.0)
+                    if not np.isnan(expense_ratio) and expense_ratio > 0:
+                        # Expense ratio is annual, so reduce units directly (already in decimal)
+                        units_to_remove = units * expense_ratio
+                        # Record as a negative purchase (i.e., units removed)
+                        self.portfolio_history.append(
+                            {
+                                "fund_name": fund_name,
+                                "date": date,
+                                "units": -units_to_remove,
+                                "amount": 0,  # No cash is received for expense ratio deduction
+                            }
+                        )
+                        self.logger.info(
+                            f"Applied expense ratio for {fund_name} on {date.date()}: "
+                            f"Removed {units_to_remove} units (expense ratio: {expense_ratio})"
+                        )
         # After simulation, calculate metrics
         self._calculate_metrics()
 

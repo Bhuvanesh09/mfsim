@@ -20,6 +20,8 @@ class XIRRMetric(BaseMetric):
         cash_flows = []
         dates = []
 
+        # Drop rows where 'amount' is near zero (e.g., abs(amount) < 1e-8)
+        portfolio_history = portfolio_history[portfolio_history["amount"].abs() > 1e-8]
         # Investments/withdrawals from portfolio_history
         for idx, row in portfolio_history.iterrows():
             # If 'date' is not a column, but the index, use idx
@@ -100,7 +102,9 @@ class TotalReturnMetric(BaseMetric):
             elif nav_df.index.name == 'date':
                 nav_on_date = nav_df.loc[[date], 'nav'] if date in nav_df.index else pd.Series([])
             else:
-                nav_on_date = pd.Series([])
+                raise ValueError(
+                    f"Invalid NAV data format for fund {fund}. Expected 'date' as column or index."
+                )
             if not nav_on_date.empty:
                 final_value += units * nav_on_date.values[0]
         total_return = (final_value / money_invested) - 1
