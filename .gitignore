@@ -1,3 +1,22 @@
 logs/**
 **/__pycache__/
 *.pyc
+
+# UV
+.venv/
+uv.lock
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE
+.vscode/
+.idea/
+
+# Build
+dist/
+build/
+*.egg-info/
+
+# OS
+.DS_Store
