@@ -1,4 +1,4 @@
-# mutual_fund_backtester/metrics/__init__.py
+"""Performance and risk metrics for portfolio evaluation."""
 
 from .base_metric import BaseMetric
 from .metrics_collection import (
@@ -6,6 +6,7 @@ from .metrics_collection import (
     SharpeRatioMetric,
     MaximumDrawdownMetric,
     SortinoRatioMetric,
+    XIRRMetric,
 )
 
 __all__ = [
@@ -14,4 +15,5 @@ __all__ = [
     "SharpeRatioMetric",
     "MaximumDrawdownMetric",
     "SortinoRatioMetric",
+    "XIRRMetric",
 ]
