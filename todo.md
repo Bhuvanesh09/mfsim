@@ -2,11 +2,11 @@
 
 ## P0 — Correctness (must fix before results can be trusted)
 
-- [ ] **Fix expense ratio double-counting** — NAV from `api.mfapi.in` is already net of expense ratio. The simulator's annual unit deduction double-counts it. Disable by default for API-sourced data; keep as opt-in for custom data loaders where NAV might be gross of fees.
+- [x] **Fix expense ratio double-counting** — NAV from `api.mfapi.in` is already net of expense ratio. The simulator's annual unit deduction double-counts it. Disable by default for API-sourced data; keep as opt-in for custom data loaders where NAV might be gross of fees. *(Fixed in 2ce8144)*
 
 - [ ] **Lot-level transaction tracking** — Implement FIFO-based lot accounting. Every purchase creates a lot with `(fund, date, units, cost_per_unit)`. Sells consume lots in FIFO order, recording holding period and realized gain/loss per lot. This is prerequisite for tax modeling, correct exit load calculation, and realistic P&L.
 
-- [ ] **Fix broken metrics** — `MaximumDrawdownMetric` and `SortinoRatioMetric` reference a `portfolio_history["total"]` column that doesn't exist. Either reconstruct portfolio value history inside these metrics (like `SharpeRatioMetric` does) or compute it once in the simulator and pass it through.
+- [x] **Fix broken metrics** — `MaximumDrawdownMetric` and `SortinoRatioMetric` reference a `portfolio_history["total"]` column that doesn't exist. Both now reconstruct daily portfolio value from transaction history and NAV data. *(Fixed in 2ce8144)*
 
 - [ ] **Handle non-trading-day rebalance dates** — When a rebalance date (1st of month, Monday, etc.) falls on a market holiday, defer to the next available trading day instead of silently skipping.
 

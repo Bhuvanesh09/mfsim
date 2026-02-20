@@ -61,3 +61,28 @@ However, for LLM-driven strategies to be genuinely useful, `rebalance()` needs r
 - Fund-level metadata (AUM, category, benchmark)
 
 The data loader abstraction is the right place to provide this — extend `BaseDataLoader` with methods for fetching supplementary market data.
+
+---
+
+## 2026-02-21 — Expense Ratio Fix, Broken Metrics Fix, Comprehensive Docstrings
+
+### What I did
+
+1. **Removed expense ratio double-counting** (`simulator.py:232-251`) — Deleted the entire block that deducted units on Jan 1st based on expense ratios. NAV from AMFI is already net of TER (verified via SEBI regulations and AMFI documentation). The `expense_ratios` dict is retained on the simulator for informational/reporting purposes.
+
+2. **Fixed `MaximumDrawdownMetric` and `SortinoRatioMetric`** — Both were referencing `portfolio_history["total"]` which doesn't exist. Gave both metrics their own `_compute_portfolio_value_history()` method (same approach as `SharpeRatioMetric`): reconstruct daily portfolio value from transaction history + NAV data, then compute returns from that series.
+
+3. **Added comprehensive docstrings across the entire library** — Every class and public method now has a docstring with Args/Returns documentation, usage examples, and explanatory notes. Key things documented:
+   - Why NAV is net of TER (in `Simulator`, `BaseDataLoader`, `data_loader` module docstring)
+   - The strategy contract (`rebalance()` returns, `allocate_money()` expected output)
+   - How each metric works (formulas, parameters, edge cases)
+   - Custom data loader implementation pattern
+   - Custom strategy implementation pattern
+
+4. **Added `XIRRMetric` to `metrics/__init__.py`** — It was missing from the exports.
+
+### Decisions made
+
+- **Not extracting `_compute_portfolio_value_history` into a shared utility yet.** Three metrics now have identical copies of this method. This is deliberate — extracting it would be premature optimization. When we add more metrics that need it, or when we refactor to compute it once in the simulator, we'll DRY it up then.
+
+- **Kept `expense_ratios` and `exit_loads` loading in the simulator init.** Even though expense ratio isn't used for deduction anymore, having the data available is useful for reporting and for future features (e.g., comparing strategy returns across funds with different TERs).
