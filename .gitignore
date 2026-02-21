@@ -18,5 +18,8 @@ dist/
 build/
 *.egg-info/
 
+# Hydra
+outputs/
+
 # OS
 .DS_Store

@@ -1,0 +1,24 @@
+# @package _global_
+#
+# Short-term momentum vs value rotation test (1 year).
+# Uses live mutual fund NAV data from AMFI API.
+# From notebook: MomentumValueStrategy, 2023-2024, 10k initial + 1k/mo SIP.
+# Result: 28.6% Total Return
+
+defaults:
+  - override /strategy: momentum_value
+  - override /data_loader: mfapi
+
+simulation:
+  start_date: "2023-01-01"
+  end_date: "2024-01-01"
+  initial_investment: 10000
+  sip_amount: 1000
+  sip_frequency: "monthly"
+
+sip_stepup:
+  enabled: false
+
+metrics:
+  - "Total Return"
+  - "Sharpe Ratio"

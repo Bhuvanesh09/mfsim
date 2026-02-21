@@ -1,0 +1,4 @@
+# Load index NAV data from local CSV files (NIFTY indices from NSE).
+# CSV files should be in data_dir with filenames like NIFTY200_MOMENTUM_30_Historical_PR_*.csv
+type: "index_csv"
+data_dir: "./mfsim/data/"

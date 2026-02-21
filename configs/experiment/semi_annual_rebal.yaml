@@ -1,0 +1,25 @@
+# @package _global_
+#
+# 15-year semi-annual rebalancing across 4 factor indices.
+# Same funds and allocation as fixed_alloc_no_rebal, but rebalances every 6 months.
+# Result: 252.22% Total Return, 17.03% XIRR, final value ~24.3M
+
+defaults:
+  - override /strategy: semi_annual_rebalance
+  - override /data_loader: index_csv
+
+simulation:
+  start_date: "2010-06-06"
+  end_date: "2025-06-06"
+  initial_investment: 0
+  sip_amount: 40000
+  sip_frequency: "monthly"
+
+sip_stepup:
+  enabled: true
+  annual_increase_pct: 0.05
+  initial_sip: 40000
+
+metrics:
+  - "Total Return"
+  - "XIRR"
