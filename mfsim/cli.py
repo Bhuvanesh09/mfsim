@@ -3,22 +3,22 @@ Hydra-based backtest runner for mfsim.
 
 Usage:
     # Run with default config (fixed allocation, index CSVs):
-    python run_backtest.py
+    uv run mfsim-backtest
 
     # Run a specific past experiment:
-    python run_backtest.py +experiment=fixed_alloc_no_rebal
-    python run_backtest.py +experiment=semi_annual_rebal
-    python run_backtest.py +experiment=nifty50_baseline
-    python run_backtest.py +experiment=momentum_value_short
+    uv run mfsim-backtest +experiment=fixed_alloc_no_rebal
+    uv run mfsim-backtest +experiment=semi_annual_rebal
+    uv run mfsim-backtest +experiment=nifty50_baseline
+    uv run mfsim-backtest +experiment=momentum_value_short
 
     # Override individual params:
-    python run_backtest.py simulation.sip_amount=50000 simulation.start_date=2015-01-01
+    uv run mfsim-backtest simulation.sip_amount=50000 simulation.start_date=2015-01-01
 
     # Switch strategy on the fly:
-    python run_backtest.py strategy=nifty50_baseline
+    uv run mfsim-backtest strategy=nifty50_baseline
 
     # Run multiple experiments (Hydra multirun):
-    python run_backtest.py --multirun +experiment=fixed_alloc_no_rebal,semi_annual_rebal,nifty50_baseline
+    uv run mfsim-backtest --multirun +experiment=fixed_alloc_no_rebal,semi_annual_rebal,nifty50_baseline
 """
 
 import os

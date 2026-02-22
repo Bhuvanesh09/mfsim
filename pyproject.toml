@@ -30,6 +30,9 @@ dependencies = [
     "omegaconf>=2.3",
 ]
 
+[project.scripts]
+mfsim-backtest = "mfsim.cli:main"
+
 [project.urls]
 Homepage = "https://github.com/Bhuvanesh09/mfsim"
 Repository = "https://github.com/Bhuvanesh09/mfsim"
@@ -41,6 +44,9 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["mfsim"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"mfsim/configs" = "mfsim/configs"
 
 [tool.uv]
 dev-dependencies = [

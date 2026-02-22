@@ -4,7 +4,6 @@ logs/**
 
 # UV
 .venv/
-uv.lock
 
 # Jupyter
 .ipynb_checkpoints/
