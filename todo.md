@@ -26,11 +26,11 @@
 
 - [ ] **Visualization module** — Equity curve, drawdown chart, allocation pie over time, strategy comparison plots. Use matplotlib. People judge backtesting tools by their charts.
 
-- [ ] **CLI interface** — `uv run mfsim backtest --strategy momentum --start 2020-01-01 --end 2025-01-01` — quick backtests without writing Python.
+- [x] **CLI interface** — Hydra-based CLI via `uv run mfsim-backtest`. Supports strategy/experiment selection, param overrides, and `--multirun` sweeps. Entry point: `mfsim.cli:main`. *(Done in 005d00e)*
 
 - [ ] **Structured result output** — Return a `SimulationResult` dataclass instead of a raw dict. Include: metrics, portfolio history, final holdings, benchmark comparison, total invested, final value.
 
-- [ ] **Multiple data source support** — Add AMFI direct download, BSE Star MF data, CSV fallback. Implement data source failover.
+- [~] **Multiple data source support** — Hydra data_loader configs support `mfapi` (live API) and `index_csv` (local NSE CSVs). Still need: AMFI direct download, BSE Star MF, data source failover.
 
 - [ ] **Better error messages** — When a fund name doesn't match any scheme, suggest the closest matches. When NAV data is missing for a date range, say which dates are affected.
 
@@ -46,7 +46,7 @@
 
 - [ ] **Paper trading mode** — Forward-test strategies with live data without executing real transactions. Log what the strategy would have done and compare against actual market outcomes.
 
-- [ ] **Strategy comparison reporting** — Generate structured markdown/JSON reports comparing multiple strategy runs. Designed for LLM consumption: an agent should be able to run 5 strategies, read the comparison report, and recommend the best one.
+- [ ] **Strategy comparison reporting** — Generate structured markdown/JSON reports comparing multiple strategy runs. Designed for LLM consumption: an agent should be able to run 5 strategies, read the comparison report, and recommend the best one. Hydra `--multirun` already runs multiple experiments — this would aggregate and format their outputs.
 
 ## P4 — Advanced (nice to have)
 

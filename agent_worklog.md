@@ -86,3 +86,45 @@ The data loader abstraction is the right place to provide this — extend `BaseD
 - **Not extracting `_compute_portfolio_value_history` into a shared utility yet.** Three metrics now have identical copies of this method. This is deliberate — extracting it would be premature optimization. When we add more metrics that need it, or when we refactor to compute it once in the simulator, we'll DRY it up then.
 
 - **Kept `expense_ratios` and `exit_loads` loading in the simulator init.** Even though expense ratio isn't used for deduction anymore, having the data available is useful for reporting and for future features (e.g., comparing strategy returns across funds with different TERs).
+
+---
+
+## 2026-02-22 — Hydra Config System & UV-Native Setup
+
+### What I did
+
+1. **Added Hydra config system** (`mfsim/configs/`, `mfsim/cli.py`) — Created a YAML-based DSL for launching backtests from the CLI without writing Python. The config structure has three composable layers:
+   - `strategy/` — defines fund list, allocation weights, rebalance frequency, strategy type
+   - `data_loader/` — selects data source (`mfapi` for live API, `index_csv` for local files)
+   - `experiment/` — preset overrides that combine strategy + data loader + simulation params
+
+2. **Created 5 experiment presets** reproducing the notebook's past runs:
+   - `fixed_alloc_no_rebal` — 15yr 4-fund factor tilt, no rebalance (255% TR, 17.1% XIRR)
+   - `semi_annual_rebal` — same funds, rebalance 2x/yr (252% TR, 17.0% XIRR)
+   - `annual_rebal` — same funds, rebalance 1x/yr (251% TR, 17.0% XIRR)
+   - `nifty50_baseline` — NIFTY 50 buy-and-hold (146% TR, 12.5% XIRR)
+   - `momentum_value_short` — 1yr momentum vs value rotation (28.6% TR)
+
+3. **Built strategy and data loader builders** (`mfsim/cli.py`) — Translates flat YAML config into the existing Python strategy/loader objects. Added `FixedAllocationStrategy` and `RebalancingStrategy` classes with SIP step-up support and target-allocation rebalancing.
+
+4. **Made the project UV-native:**
+   - Added `[project.scripts]` entry point: `mfsim-backtest = "mfsim.cli:main"`
+   - Moved `run_backtest.py` → `mfsim/cli.py` and `configs/` → `mfsim/configs/` so Hydra config resolution works when installed as a package via `uv run`
+   - Added `mfsim/configs/__init__.py` for Hydra's module-based config discovery
+   - Stopped gitignoring `uv.lock` — lockfile committed for reproducible builds
+   - Added `hydra-core` and `omegaconf` to runtime dependencies
+   - Ran `uv sync` to generate lockfile
+
+5. **Created `CLAUDE.md`** — Establishes project conventions: always use `uv run`/`uv sync`/`uv add`, never bare `python`/`pip`/`pytest`. Documents the Hydra config structure and CLI usage.
+
+6. **Updated `README.md`** — Added CLI Quick Start section, Hydra Configs section with full directory tree and experiment results table, updated Architecture section.
+
+### Decisions made
+
+- **Configs inside the package, not at repo root.** Hydra resolves `config_path` relative to the calling module's `__file__`. When running as an installed entry point via `uv run mfsim-backtest`, the module lives in `.venv/`. Keeping configs at repo root would break resolution. Moving them into `mfsim/configs/` with an `__init__.py` makes Hydra treat it as a config module, which works for both `uv run` and direct `python` invocation.
+
+- **Strategy classes in `cli.py`, not in `strategies/`.** `FixedAllocationStrategy` and `RebalancingStrategy` are config-driven wrappers — they translate YAML params into `BaseStrategy` implementations. They're closer to CLI glue than core library code. If they get reused from Python, they should move to `strategies/`.
+
+- **`frequency: "never"` for buy-and-hold.** The existing `_is_rebalance_date` returns `False` for any unrecognized frequency string. Using `"never"` as the frequency for fixed allocation (no-rebalance) strategies leverages this behavior. It's readable and doesn't need code changes.
+
+- **SIP step-up via year-difference calculation, not date tracking.** The step-up logic uses `current_year - start_year` to determine the multiplier rather than tracking each annual boundary. This means the step-up applies immediately on Jan 1st rather than on the SIP anniversary. This matches the notebook's behavior.

@@ -4,7 +4,6 @@ logs/**
 
 # UV
 .venv/
-uv.lock
 
 # Jupyter
 .ipynb_checkpoints/
@@ -17,6 +16,9 @@ uv.lock
 dist/
 build/
 *.egg-info/
+
+# Hydra
+outputs/
 
 # OS
 .DS_Store

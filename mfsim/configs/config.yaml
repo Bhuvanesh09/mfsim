@@ -1,0 +1,23 @@
+defaults:
+  - strategy: fixed_allocation
+  - data_loader: index_csv
+  - _self_
+
+# Simulation parameters
+simulation:
+  start_date: "2010-06-06"
+  end_date: "2025-06-06"
+  initial_investment: 0
+  sip_amount: 40000
+  sip_frequency: "monthly"
+
+# SIP step-up configuration (used by strategies that support it)
+sip_stepup:
+  enabled: true
+  annual_increase_pct: 0.05  # 5% annual increase
+  initial_sip: 40000
+
+# Metrics to compute
+metrics:
+  - "Total Return"
+  - "XIRR"

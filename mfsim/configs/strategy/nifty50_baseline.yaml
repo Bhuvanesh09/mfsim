@@ -1,0 +1,10 @@
+# Simple NIFTY 50 buy-and-hold baseline. No rebalancing, single fund.
+type: "fixed_allocation"
+frequency: "never"
+sip_increase_pct: 0.05
+
+fund_list:
+  - "NIFTY_50"
+
+allocation:
+  NIFTY_50: 1.0

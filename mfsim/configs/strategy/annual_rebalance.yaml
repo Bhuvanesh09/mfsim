@@ -1,0 +1,16 @@
+# Annual rebalancing to maintain target allocation across factor indices.
+type: "rebalancing"
+frequency: "annually"
+sip_increase_pct: 0.05
+
+fund_list:
+  - "NIFTY200_MOMENTUM_30"
+  - "NIFTY100_LOW_VOLATILITY_30"
+  - "NIFTY_ALPHA_LOW_VOLATILITY_30"
+  - "NIFTY_ALPHA_50"
+
+allocation:
+  NIFTY200_MOMENTUM_30: 0.4
+  NIFTY100_LOW_VOLATILITY_30: 0.3
+  NIFTY_ALPHA_LOW_VOLATILITY_30: 0.2
+  NIFTY_ALPHA_50: 0.1

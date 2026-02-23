@@ -1,0 +1,8 @@
+# Momentum vs Value rotation strategy using the built-in MomentumValueStrategy.
+# Compares trailing returns and shifts 10% toward the outperformer on rebalance.
+type: "momentum_value"
+frequency: "semi-annually"
+
+value_fund: "NIPPON INDIA NIFTY 50 VALUE 20 INDEX FUND - DIRECT Plan - IDCW Option"
+momentum_fund: "BANDHAN NIFTY200 MOMENTUM 30 INDEX FUND - GROWTH - DIRECT PLAN"
+momentum_period: 180

@@ -24,6 +24,29 @@ uv sync
 
 ## Quick Start
 
+### CLI (no Python needed)
+
+Run pre-built experiments directly from the command line:
+
+```bash
+# Run the default backtest:
+uv run mfsim-backtest
+
+# Run a specific past experiment:
+uv run mfsim-backtest +experiment=fixed_alloc_no_rebal
+
+# Override params on the fly:
+uv run mfsim-backtest simulation.sip_amount=50000 simulation.start_date=2015-01-01
+
+# Switch strategy:
+uv run mfsim-backtest strategy=nifty50_baseline
+
+# Compare multiple strategies in one shot:
+uv run mfsim-backtest --multirun strategy=fixed_allocation,semi_annual_rebalance,nifty50_baseline
+```
+
+### Python API
+
 ```python
 from mfsim.backtester import Simulator
 from mfsim.strategies import MomentumValueStrategy
@@ -107,6 +130,42 @@ sim = Simulator(..., data_loader=CsvDataLoader("/path/to/csvs"))
 | **Sortino Ratio** | Like Sharpe, but only penalizes downside volatility |
 | **Max Drawdown** | Worst peak-to-trough decline |
 
+## Hydra Configs
+
+Experiments are defined as composable YAML configs under `mfsim/configs/`. You can mix and match strategies, data sources, and simulation params without touching Python.
+
+```
+mfsim/configs/
+├── config.yaml              # base defaults
+├── strategy/                # pluggable strategy definitions
+│   ├── fixed_allocation.yaml
+│   ├── semi_annual_rebalance.yaml
+│   ├── annual_rebalance.yaml
+│   ├── momentum_value.yaml
+│   └── nifty50_baseline.yaml
+├── data_loader/             # data source configs
+│   ├── mfapi.yaml           # live AMFI API
+│   └── index_csv.yaml       # local NSE index CSVs
+└── experiment/              # preset experiments (past runs)
+    ├── fixed_alloc_no_rebal.yaml
+    ├── semi_annual_rebal.yaml
+    ├── annual_rebal.yaml
+    ├── nifty50_baseline.yaml
+    └── momentum_value_short.yaml
+```
+
+**Available experiments** reproduce the comparison from the project notebook:
+
+| Experiment | Strategy | Period | Result |
+|---|---|---|---|
+| `fixed_alloc_no_rebal` | Fixed 4-fund factor tilt | 2010–2025 | 255% TR, 17.1% XIRR |
+| `semi_annual_rebal` | Same funds, rebalance 2x/yr | 2010–2025 | 252% TR, 17.0% XIRR |
+| `annual_rebal` | Same funds, rebalance 1x/yr | 2010–2025 | 251% TR, 17.0% XIRR |
+| `nifty50_baseline` | NIFTY 50 buy-and-hold | 2010–2025 | 146% TR, 12.5% XIRR |
+| `momentum_value_short` | Momentum vs Value rotation | 2023–2024 | 28.6% TR |
+
+To add your own experiment, create a YAML file in `mfsim/configs/experiment/` that overrides the defaults.
+
 ## Architecture
 
 ```
@@ -115,6 +174,8 @@ mfsim/
 ├── strategies/       # Strategy interface + implementations
 ├── metrics/          # Performance and risk metric calculations
 ├── utils/            # Data loaders (API, custom) and logging
+├── configs/          # Hydra YAML configs for experiments
+├── cli.py            # Hydra entry point (exposed as mfsim-backtest)
 └── data/             # Indian mutual fund scheme database
 ```
 
