@@ -10,12 +10,59 @@ Available metrics:
     - :class:`SharpeRatioMetric` — risk-adjusted return vs risk-free rate
     - :class:`SortinoRatioMetric` — like Sharpe but only penalizes downside
     - :class:`MaximumDrawdownMetric` — worst peak-to-trough decline
+    - :class:`AlphaMetric` — annualized excess return over a benchmark
+    - :class:`TrackingErrorMetric` — annualized std of return differences vs benchmark
+    - :class:`InformationRatioMetric` — alpha / tracking error
+    - :class:`TaxAwareReturnMetric` — post-tax total return using Indian MF tax rules
 """
 
 import numpy as np
 import pandas as pd
-from .base_metric import BaseMetric
 from scipy.optimize import newton
+
+from .base_metric import BaseMetric
+
+
+def compute_portfolio_value_history(portfolio_history, nav_data, current_date):
+    """Reconstruct daily portfolio value from transaction history and NAV data.
+
+    For each calendar day from the first transaction to ``current_date``,
+    computes the total portfolio value by multiplying each fund's
+    cumulative units held by its NAV on that day.
+
+    Args:
+        portfolio_history: Transaction DataFrame with ``date`` index and
+            columns ``fund_name``, ``units``, ``amount``.
+        nav_data: Fund NAV data dict.
+        current_date: End date for the value history.
+
+    Returns:
+        pandas Series indexed by date with portfolio value as values.
+    """
+    portfolio_history = portfolio_history.sort_values("date")
+
+    all_dates = pd.date_range(start=portfolio_history.index.min(), end=current_date, freq="D")
+
+    holdings_df = pd.DataFrame(index=all_dates, columns=nav_data.keys()).fillna(0.0)
+
+    for txn_date, row in portfolio_history.iterrows():
+        if txn_date > current_date:
+            continue
+        fund = row["fund_name"]
+        units = row["units"]
+        holdings_df.loc[txn_date:, fund] += units
+
+    portfolio_values = pd.Series(0.0, index=all_dates, dtype=float)
+    for fund, nav_df in nav_data.items():
+        nav_df = nav_df[nav_df.index <= current_date]
+        # Reindex to all calendar days and forward-fill so weekends/holidays
+        # carry the last known NAV instead of producing NaN/zero.
+        nav_aligned = nav_df["nav"].reindex(all_dates).ffill()
+        holdings = holdings_df[fund]
+        portfolio_values += holdings * nav_aligned
+
+    portfolio_values = portfolio_values.fillna(0.0)
+    return portfolio_values
 
 
 class XIRRMetric(BaseMetric):
@@ -70,9 +117,7 @@ class XIRRMetric(BaseMetric):
             if "date" in nav.columns:
                 nav_on_date = nav.loc[nav["date"] == date, "nav"]
             elif nav.index.name == "date":
-                nav_on_date = (
-                    nav.loc[[date], "nav"] if date in nav.index else pd.Series([])
-                )
+                nav_on_date = nav.loc[[date], "nav"] if date in nav.index else pd.Series([])
             else:
                 nav_on_date = pd.Series([])
             if not nav_on_date.empty:
@@ -84,8 +129,7 @@ class XIRRMetric(BaseMetric):
         def xnpv(rate, cashflows, dates):
             t0 = dates[0]
             return sum(
-                cf / (1 + rate) ** ((d - t0).days / 365.0)
-                for cf, d in zip(cashflows, dates)
+                cf / (1 + rate) ** ((d - t0).days / 365.0) for cf, d in zip(cashflows, dates)
             )
 
         def xirr(cashflows, dates, guess=0.1):
@@ -130,15 +174,10 @@ class TotalReturnMetric(BaseMetric):
             if "date" in nav_df.columns:
                 nav_on_date = nav_df.loc[nav_df["date"] == date, "nav"]
             elif nav_df.index.name == "date":
-                nav_on_date = (
-                    nav_df.loc[[date], "nav"]
-                    if date in nav_df.index
-                    else pd.Series([])
-                )
+                nav_on_date = nav_df.loc[[date], "nav"] if date in nav_df.index else pd.Series([])
             else:
                 raise ValueError(
-                    f"Invalid NAV data format for fund {fund}. "
-                    f"Expected 'date' as column or index."
+                    f"Invalid NAV data format for fund {fund}. Expected 'date' as column or index."
                 )
             if not nav_on_date.empty:
                 final_value += units * nav_on_date.values[0]
@@ -153,7 +192,8 @@ class SharpeRatioMetric(BaseMetric):
 
     Formula::
 
-        sharpe = (mean(portfolio_return - risk_free_rate) / std(portfolio_return - risk_free_rate)) * sqrt(periods_per_year)
+        sharpe = (mean(excess_return) / std(excess_return))
+                * sqrt(periods_per_year)
 
     The metric reconstructs a daily portfolio value history from the
     transaction log and NAV data, then computes returns from that series.
@@ -185,9 +225,7 @@ class SharpeRatioMetric(BaseMetric):
         Returns:
             Annualized Sharpe Ratio as a float.
         """
-        portfolio_values = self._compute_portfolio_value_history(
-            portfolio_history, nav_data, date
-        )
+        portfolio_values = compute_portfolio_value_history(portfolio_history, nav_data, date)
         if portfolio_values.empty or len(portfolio_values) < 2:
             return np.nan
 
@@ -213,49 +251,6 @@ class SharpeRatioMetric(BaseMetric):
 
         sharpe_ratio = (mean_excess_return / std_excess_return) * scaling_factor
         return float(sharpe_ratio)
-
-    def _compute_portfolio_value_history(
-        self, portfolio_history, nav_data, current_date
-    ):
-        """Reconstruct daily portfolio value from transaction history and NAV data.
-
-        For each calendar day from the first transaction to ``current_date``,
-        computes the total portfolio value by multiplying each fund's
-        cumulative units held by its NAV on that day.
-
-        Args:
-            portfolio_history: Transaction DataFrame.
-            nav_data: Fund NAV data dict.
-            current_date: End date for the value history.
-
-        Returns:
-            pandas Series indexed by date with portfolio value as values.
-        """
-        portfolio_history = portfolio_history.sort_values("date")
-
-        all_dates = pd.date_range(
-            start=portfolio_history.index.min(), end=current_date, freq="D"
-        )
-
-        holdings_df = pd.DataFrame(
-            index=all_dates, columns=nav_data.keys()
-        ).fillna(0.0)
-
-        for txn_date, row in portfolio_history.iterrows():
-            if txn_date > current_date:
-                continue
-            fund = row["fund_name"]
-            units = row["units"]
-            holdings_df.loc[txn_date:, fund] += units
-
-        portfolio_values = pd.Series(index=all_dates, dtype=float)
-        for fund, nav_df in nav_data.items():
-            nav_df = nav_df[nav_df.index <= current_date]
-            holdings = holdings_df[fund]
-            portfolio_values += holdings * nav_df["nav"]
-
-        portfolio_values = portfolio_values.fillna(0.0)
-        return portfolio_values
 
 
 class MaximumDrawdownMetric(BaseMetric):
@@ -283,9 +278,7 @@ class MaximumDrawdownMetric(BaseMetric):
             for a 20% drawdown). Returns ``0.0`` if portfolio value
             never declined.
         """
-        portfolio_values = self._compute_portfolio_value_history(
-            portfolio_history, nav_data, date
-        )
+        portfolio_values = compute_portfolio_value_history(portfolio_history, nav_data, date)
         if portfolio_values.empty or len(portfolio_values) < 2:
             return 0.0
 
@@ -294,40 +287,6 @@ class MaximumDrawdownMetric(BaseMetric):
         drawdown = (portfolio_values - rolling_max) / rolling_max
         max_drawdown = drawdown.min()
         return float(max_drawdown)
-
-    def _compute_portfolio_value_history(
-        self, portfolio_history, nav_data, current_date
-    ):
-        """Reconstruct daily portfolio value from transaction history.
-
-        See :meth:`SharpeRatioMetric._compute_portfolio_value_history`
-        for details — uses the same approach.
-        """
-        portfolio_history = portfolio_history.sort_values("date")
-
-        all_dates = pd.date_range(
-            start=portfolio_history.index.min(), end=current_date, freq="D"
-        )
-
-        holdings_df = pd.DataFrame(
-            index=all_dates, columns=nav_data.keys()
-        ).fillna(0.0)
-
-        for txn_date, row in portfolio_history.iterrows():
-            if txn_date > current_date:
-                continue
-            fund = row["fund_name"]
-            units = row["units"]
-            holdings_df.loc[txn_date:, fund] += units
-
-        portfolio_values = pd.Series(index=all_dates, dtype=float)
-        for fund, nav_df in nav_data.items():
-            nav_df = nav_df[nav_df.index <= current_date]
-            holdings = holdings_df[fund]
-            portfolio_values += holdings * nav_df["nav"]
-
-        portfolio_values = portfolio_values.fillna(0.0)
-        return portfolio_values
 
 
 class SortinoRatioMetric(BaseMetric):
@@ -366,9 +325,7 @@ class SortinoRatioMetric(BaseMetric):
             Annualized Sortino Ratio as a float. Returns ``float('nan')``
             if there are fewer than 2 data points or no downside deviation.
         """
-        portfolio_values = self._compute_portfolio_value_history(
-            portfolio_history, nav_data, date
-        )
+        portfolio_values = compute_portfolio_value_history(portfolio_history, nav_data, date)
         if portfolio_values.empty or len(portfolio_values) < 2:
             return np.nan
 
@@ -384,44 +341,8 @@ class SortinoRatioMetric(BaseMetric):
 
         expected_return = excess_returns.mean()
         downside_deviation = downside_returns.std()
-        sortino_ratio = (expected_return / downside_deviation) * np.sqrt(
-            periods_per_year
-        )
+        sortino_ratio = (expected_return / downside_deviation) * np.sqrt(periods_per_year)
         return float(sortino_ratio)
-
-    def _compute_portfolio_value_history(
-        self, portfolio_history, nav_data, current_date
-    ):
-        """Reconstruct daily portfolio value from transaction history.
-
-        See :meth:`SharpeRatioMetric._compute_portfolio_value_history`
-        for details — uses the same approach.
-        """
-        portfolio_history = portfolio_history.sort_values("date")
-
-        all_dates = pd.date_range(
-            start=portfolio_history.index.min(), end=current_date, freq="D"
-        )
-
-        holdings_df = pd.DataFrame(
-            index=all_dates, columns=nav_data.keys()
-        ).fillna(0.0)
-
-        for txn_date, row in portfolio_history.iterrows():
-            if txn_date > current_date:
-                continue
-            fund = row["fund_name"]
-            units = row["units"]
-            holdings_df.loc[txn_date:, fund] += units
-
-        portfolio_values = pd.Series(index=all_dates, dtype=float)
-        for fund, nav_df in nav_data.items():
-            nav_df = nav_df[nav_df.index <= current_date]
-            holdings = holdings_df[fund]
-            portfolio_values += holdings * nav_df["nav"]
-
-        portfolio_values = portfolio_values.fillna(0.0)
-        return portfolio_values
 
     def _get_periods_per_year(self):
         """Return the number of periods per year for the configured frequency.
@@ -437,3 +358,281 @@ class SortinoRatioMetric(BaseMetric):
             return 12
         else:
             return 252
+
+
+class AlphaMetric(BaseMetric):
+    """Annualized excess return over a benchmark (Jensen's Alpha simplified).
+
+    Alpha = annualized_portfolio_return - annualized_benchmark_return
+
+    Args:
+        benchmark_fund: Name of the fund in ``nav_data`` to use as benchmark.
+    """
+
+    def __init__(self, benchmark_fund: str):
+        self.benchmark_fund = benchmark_fund
+
+    def calculate(self, portfolio_history, current_portfolio, date, nav_data):
+        """Compute annualized alpha vs the benchmark.
+
+        Args:
+            portfolio_history: Transaction DataFrame.
+            current_portfolio: Final holdings ``{fund_name: units}``.
+            date: Simulation end date.
+            nav_data: Fund NAV data dict.
+
+        Returns:
+            Annualized alpha as a decimal. Returns ``float('nan')`` if
+            insufficient data.
+        """
+        portfolio_values = compute_portfolio_value_history(portfolio_history, nav_data, date)
+        if portfolio_values.empty or len(portfolio_values) < 2:
+            return np.nan
+
+        portfolio_values = portfolio_values.sort_index()
+
+        # Get benchmark values over the same period
+        benchmark_nav = nav_data[self.benchmark_fund]["nav"]
+        start = portfolio_values.index.min()
+        end = portfolio_values.index.max()
+        benchmark_nav = benchmark_nav[(benchmark_nav.index >= start) & (benchmark_nav.index <= end)]
+
+        if benchmark_nav.empty or len(benchmark_nav) < 2:
+            return np.nan
+
+        # Annualized returns
+        days = (end - start).days
+        if days == 0:
+            return np.nan
+
+        port_return = (portfolio_values.iloc[-1] / portfolio_values.iloc[0]) ** (365.0 / days) - 1
+        bench_return = (benchmark_nav.iloc[-1] / benchmark_nav.iloc[0]) ** (365.0 / days) - 1
+
+        return float(port_return - bench_return)
+
+
+class TrackingErrorMetric(BaseMetric):
+    """Annualized standard deviation of return differences vs benchmark.
+
+    Measures how consistently a portfolio tracks (or deviates from) a
+    benchmark index. Lower tracking error means the portfolio behaves
+    more like the benchmark.
+
+    Args:
+        benchmark_fund: Name of the fund in ``nav_data`` to use as benchmark.
+    """
+
+    def __init__(self, benchmark_fund: str):
+        self.benchmark_fund = benchmark_fund
+
+    def calculate(self, portfolio_history, current_portfolio, date, nav_data):
+        """Compute annualized tracking error.
+
+        Args:
+            portfolio_history: Transaction DataFrame.
+            current_portfolio: Final holdings ``{fund_name: units}``.
+            date: Simulation end date.
+            nav_data: Fund NAV data dict.
+
+        Returns:
+            Annualized tracking error as a decimal. Returns ``float('nan')``
+            if insufficient data.
+        """
+        portfolio_values = compute_portfolio_value_history(portfolio_history, nav_data, date)
+        if portfolio_values.empty or len(portfolio_values) < 2:
+            return np.nan
+
+        portfolio_values = portfolio_values.sort_index()
+        port_returns = portfolio_values.pct_change().dropna()
+
+        benchmark_nav = nav_data[self.benchmark_fund]["nav"]
+        # Align to portfolio dates
+        benchmark_aligned = benchmark_nav.reindex(portfolio_values.index).ffill()
+        bench_returns = benchmark_aligned.pct_change().dropna()
+
+        # Align both return series
+        common_idx = port_returns.index.intersection(bench_returns.index)
+        if len(common_idx) < 2:
+            return np.nan
+
+        diff = port_returns.loc[common_idx] - bench_returns.loc[common_idx]
+        tracking_error = diff.std() * np.sqrt(252)
+        return float(tracking_error)
+
+
+class InformationRatioMetric(BaseMetric):
+    """Ratio of excess return to tracking error (annualized).
+
+    Measures risk-adjusted excess return relative to a benchmark.
+    Higher values indicate the portfolio generates more excess return
+    per unit of tracking risk.
+
+    Args:
+        benchmark_fund: Name of the fund in ``nav_data`` to use as benchmark.
+    """
+
+    def __init__(self, benchmark_fund: str):
+        self.benchmark_fund = benchmark_fund
+
+    def calculate(self, portfolio_history, current_portfolio, date, nav_data):
+        """Compute annualized information ratio.
+
+        Args:
+            portfolio_history: Transaction DataFrame.
+            current_portfolio: Final holdings ``{fund_name: units}``.
+            date: Simulation end date.
+            nav_data: Fund NAV data dict.
+
+        Returns:
+            Annualized information ratio as a float. Returns ``float('nan')``
+            if insufficient data or zero tracking error.
+        """
+        portfolio_values = compute_portfolio_value_history(portfolio_history, nav_data, date)
+        if portfolio_values.empty or len(portfolio_values) < 2:
+            return np.nan
+
+        portfolio_values = portfolio_values.sort_index()
+        port_returns = portfolio_values.pct_change().dropna()
+
+        benchmark_nav = nav_data[self.benchmark_fund]["nav"]
+        benchmark_aligned = benchmark_nav.reindex(portfolio_values.index).ffill()
+        bench_returns = benchmark_aligned.pct_change().dropna()
+
+        common_idx = port_returns.index.intersection(bench_returns.index)
+        if len(common_idx) < 2:
+            return np.nan
+
+        diff = port_returns.loc[common_idx] - bench_returns.loc[common_idx]
+
+        mean_diff = diff.mean()
+        std_diff = diff.std()
+
+        if std_diff == 0:
+            return np.nan
+
+        ir = (mean_diff / std_diff) * np.sqrt(252)
+        return float(ir)
+
+
+class TaxAwareReturnMetric(BaseMetric):
+    """Post-tax total return using Indian MF taxation rules.
+
+    Models Indian mutual fund taxation (post Budget 2024) using lot-level
+    holding period data from :class:`~mfsim.backtester.lot_tracker.LotTracker`.
+
+    Equity fund tax rates:
+        - LTCG (holding > 12 months): 12.5% on gains above 1.25 lakh/year
+        - STCG (holding <= 12 months): 20%
+
+    The metric computes tax on both realized gains (from sells during the
+    simulation) and unrealized gains (as if the portfolio were liquidated
+    at the end date).
+
+    Args:
+        lot_tracker: :class:`~mfsim.backtester.lot_tracker.LotTracker` instance
+            with realized gains history.
+        lots_at_end: List of open :class:`~mfsim.backtester.lot_tracker.Lot`
+            instances at simulation end (for unrealized gain computation).
+    """
+
+    LTCG_RATE = 0.125  # 12.5%
+    STCG_RATE = 0.20  # 20%
+    LTCG_EXEMPTION = 125000  # 1.25 lakh per year
+    LTCG_HOLDING_DAYS = 365  # >12 months for equity
+
+    def __init__(self, lot_tracker, lots_at_end=None):
+        self.lot_tracker = lot_tracker
+        self.lots_at_end = lots_at_end or []
+
+    def calculate(self, portfolio_history, current_portfolio, date, nav_data):
+        """Compute post-tax total return.
+
+        Args:
+            portfolio_history: Transaction DataFrame.
+            current_portfolio: Final holdings ``{fund_name: units}``.
+            date: Simulation end date.
+            nav_data: Fund NAV data dict.
+
+        Returns:
+            Post-tax total return as a decimal (e.g., ``0.35`` for 35%).
+            Returns ``float('nan')`` if total invested is zero.
+        """
+        total_invested = portfolio_history["amount"].sum()
+
+        # 1. Calculate final portfolio value (pre-tax)
+        final_value = 0.0
+        for fund, units in current_portfolio.items():
+            nav_df = nav_data[fund]
+            if date in nav_df.index:
+                final_value += units * nav_df.loc[date, "nav"]
+
+        # 2. Calculate tax on realized gains
+        realized_tax = self._compute_realized_tax(date)
+
+        # 3. Calculate tax on unrealized gains (as if liquidated at end_date)
+        unrealized_tax = self._compute_unrealized_tax(date, nav_data)
+
+        total_tax = realized_tax + unrealized_tax
+        post_tax_value = final_value - total_tax
+
+        if total_invested == 0:
+            return np.nan
+
+        return float((post_tax_value / total_invested) - 1)
+
+    def _compute_realized_tax(self, end_date):
+        """Compute tax on all realized gains.
+
+        Args:
+            end_date: Simulation end date (unused, reserved for future
+                multi-year exemption logic).
+
+        Returns:
+            Total tax liability on realized gains.
+        """
+        ltcg_total = 0.0
+        stcg_total = 0.0
+
+        for gain in self.lot_tracker.realized_gains:
+            if gain.gain <= 0:
+                continue  # No tax on losses (simplified)
+            if gain.holding_days > self.LTCG_HOLDING_DAYS:
+                ltcg_total += gain.gain
+            else:
+                stcg_total += gain.gain
+
+        # Apply LTCG exemption
+        ltcg_taxable = max(0, ltcg_total - self.LTCG_EXEMPTION)
+
+        return ltcg_taxable * self.LTCG_RATE + stcg_total * self.STCG_RATE
+
+    def _compute_unrealized_tax(self, end_date, nav_data):
+        """Compute tax on unrealized gains (if portfolio were liquidated at end_date).
+
+        Args:
+            end_date: Date at which to value the portfolio for unrealized gains.
+            nav_data: Fund NAV data dict.
+
+        Returns:
+            Total tax liability on unrealized gains.
+        """
+        ltcg_total = 0.0
+        stcg_total = 0.0
+
+        for lot in self.lots_at_end:
+            fund = lot.fund_name
+            if end_date not in nav_data[fund].index:
+                continue
+            current_nav = nav_data[fund].loc[end_date, "nav"]
+            gain = (current_nav - lot.cost_per_unit) * lot.units
+            if gain <= 0:
+                continue
+
+            holding_days = (end_date - lot.purchase_date).days
+            if holding_days > self.LTCG_HOLDING_DAYS:
+                ltcg_total += gain
+            else:
+                stcg_total += gain
+
+        ltcg_taxable = max(0, ltcg_total - self.LTCG_EXEMPTION)
+        return ltcg_taxable * self.LTCG_RATE + stcg_total * self.STCG_RATE

@@ -42,9 +42,7 @@ def setup_logger(name="backtester", log_dir="logs"):
 
     logger.setLevel(logging.DEBUG)
 
-    log_filename = os.path.join(
-        log_dir, f"{name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
-    )
+    log_filename = os.path.join(log_dir, f"{name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log")
 
     # File Handler
     fh = logging.FileHandler(log_filename)

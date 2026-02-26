@@ -10,6 +10,7 @@ simulation:
   initial_investment: 0
   sip_amount: 40000
   sip_frequency: "monthly"
+  benchmark_fund: null  # Optional: fund name for benchmark metrics
 
 # SIP step-up configuration (used by strategies that support it)
 sip_stepup:

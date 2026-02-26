@@ -2,10 +2,14 @@
 
 from .base_metric import BaseMetric
 from .metrics_collection import (
-    TotalReturnMetric,
-    SharpeRatioMetric,
+    AlphaMetric,
+    InformationRatioMetric,
     MaximumDrawdownMetric,
+    SharpeRatioMetric,
     SortinoRatioMetric,
+    TaxAwareReturnMetric,
+    TotalReturnMetric,
+    TrackingErrorMetric,
     XIRRMetric,
 )
 
@@ -16,4 +20,8 @@ __all__ = [
     "MaximumDrawdownMetric",
     "SortinoRatioMetric",
     "XIRRMetric",
+    "AlphaMetric",
+    "TrackingErrorMetric",
+    "InformationRatioMetric",
+    "TaxAwareReturnMetric",
 ]
