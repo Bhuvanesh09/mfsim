@@ -44,9 +44,7 @@ class MomentumValueStrategy(BaseStrategy):
         )
     """
 
-    def __init__(
-        self, frequency, metrics, value_fund, momentum_fund, momentum_period=180
-    ):
+    def __init__(self, frequency, metrics, value_fund, momentum_fund, momentum_period=180):
         super().__init__(frequency, metrics, [value_fund, momentum_fund])
         self.value_fund = value_fund
         self.momentum_fund = momentum_fund
@@ -107,9 +105,7 @@ class MomentumValueStrategy(BaseStrategy):
                 * portfolio.get(value_fund, 0)
                 * nav_data[value_fund]["nav"].loc[current_date].astype(float)
             )
-            orders.append(
-                {"fund_name": value_fund, "amount": -shift_amount, "date": current_date}
-            )
+            orders.append({"fund_name": value_fund, "amount": -shift_amount, "date": current_date})
             orders.append(
                 {
                     "fund_name": momentum_fund,

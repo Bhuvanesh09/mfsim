@@ -1,2 +1,4 @@
 # Live data from api.mfapi.in (AMFI). NAV is already net of expense ratio.
 type: "mfapi"
+cache_ttl_hours: 24
+cache_dir: null  # Uses ~/.mfsim/cache/nav/ by default

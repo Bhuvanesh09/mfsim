@@ -21,9 +21,9 @@ Usage:
     uv run mfsim-backtest --multirun +experiment=fixed_alloc_no_rebal,semi_annual_rebal,nifty50_baseline
 """
 
+import logging
 import os
 import re
-import logging
 
 import hydra
 import pandas as pd
@@ -170,7 +170,9 @@ class IndexCsvDataLoader(BaseDataLoader):
 
     def _load_all_csvs(self):
         dfs = {}
-        csv_files = [f for f in os.listdir(self.data_dir) if f.endswith(".csv") and "_Historical_PR_" in f]
+        csv_files = [
+            f for f in os.listdir(self.data_dir) if f.endswith(".csv") and "_Historical_PR_" in f
+        ]
         for file in csv_files:
             match = re.match(r"(.*?)_Historical_PR_.*\.csv", file)
             if match:
@@ -192,7 +194,9 @@ class IndexCsvDataLoader(BaseDataLoader):
     def load_nav_data(self, fund_name):
         key = fund_name.replace(" ", "_")
         if key not in self.index_dfs:
-            raise ValueError(f"Index '{fund_name}' not found. Available: {list(self.index_dfs.keys())}")
+            raise ValueError(
+                f"Index '{fund_name}' not found. Available: {list(self.index_dfs.keys())}"
+            )
         df = self.index_dfs[key][["date", "nav"]].copy()
         df = df.sort_values("date")
         df["nav"] = df["nav"].astype(float)
@@ -203,7 +207,9 @@ def build_data_loader(cfg: DictConfig) -> BaseDataLoader:
     """Instantiate the right data loader from the Hydra config."""
     dl_type = cfg.data_loader.type
     if dl_type == "mfapi":
-        return MfApiDataLoader()
+        cache_ttl = cfg.data_loader.get("cache_ttl_hours", 24)
+        cache_dir = cfg.data_loader.get("cache_dir", None)
+        return MfApiDataLoader(cache_ttl_hours=cache_ttl, cache_dir=cache_dir)
     elif dl_type == "index_csv":
         data_dir = cfg.data_loader.get("data_dir", "./mfsim/data/")
         return IndexCsvDataLoader(data_dir)
@@ -230,6 +236,8 @@ def main(cfg: DictConfig):
     strategy = build_strategy(cfg)
     data_loader = build_data_loader(cfg)
 
+    benchmark_fund = OmegaConf.select(cfg, "simulation.benchmark_fund", default=None)
+
     sim = Simulator(
         start_date=cfg.simulation.start_date,
         end_date=cfg.simulation.end_date,
@@ -238,6 +246,7 @@ def main(cfg: DictConfig):
         sip_amount=cfg.simulation.sip_amount,
         sip_frequency=cfg.simulation.sip_frequency,
         data_loader=data_loader,
+        benchmark_fund=benchmark_fund,
     )
 
     results = sim.run()
@@ -254,6 +263,8 @@ def main(cfg: DictConfig):
         print(f"SIP step-up:  {cfg.sip_stepup.annual_increase_pct * 100:.0f}% annually")
     print(f"Total invested: {sim.total_invested:,.2f}")
     print(f"Final value:    {sim.get_portfolio_value():,.2f}")
+    if sim.total_stamp_duty > 0:
+        print(f"Stamp duty:     {sim.total_stamp_duty:,.2f}")
     print("-" * 60)
     for metric_name, value in results.items():
         if isinstance(value, float):
