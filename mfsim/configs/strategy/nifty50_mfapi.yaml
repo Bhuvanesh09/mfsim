@@ -1,0 +1,10 @@
+# NIFTY 50 buy-and-hold baseline using live MFAPI data.
+# Uses UTI Nifty 50 Index Fund (Direct, Growth) — oldest and most liquid option.
+type: "fixed_allocation"
+frequency: "monthly"
+
+fund_list:
+  - "UTI Nifty 50 Index Fund - Growth Option- Direct"
+
+allocation:
+  "UTI Nifty 50 Index Fund - Growth Option- Direct": 1.0

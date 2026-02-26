@@ -1,0 +1,68 @@
+[
+  {
+    "name": "nifty50_baseline",
+    "label": "Nifty 50 (buy & hold)",
+    "total_invested": 669966.5,
+    "final_value": 960387.8267447246,
+    "TotalReturn": 0.433486,
+    "XIRR": 0.13195,
+    "MaximumDrawdown": -0.095644,
+    "SharpeRatio": 1.777778,
+    "SortinoRatio": -1.905082
+  },
+  {
+    "name": "value_only",
+    "label": "Value 20 (buy & hold)",
+    "total_invested": 669966.5,
+    "final_value": 957925.8193379479,
+    "TotalReturn": 0.429812,
+    "XIRR": 0.130996,
+    "MaximumDrawdown": -0.125794,
+    "SharpeRatio": 1.755499,
+    "SortinoRatio": -1.925924
+  },
+  {
+    "name": "momentum_only",
+    "label": "Momentum 30 (buy & hold)",
+    "total_invested": 669966.5,
+    "final_value": 986038.6233595094,
+    "TotalReturn": 0.471773,
+    "XIRR": 0.141766,
+    "MaximumDrawdown": -0.258226,
+    "SharpeRatio": 1.496468,
+    "SortinoRatio": -1.264636
+  },
+  {
+    "name": "50_50_fixed",
+    "label": "50/50 Value+Momentum (no rebalance)",
+    "total_invested": 669966.5,
+    "final_value": 971982.2213487286,
+    "TotalReturn": 0.450792,
+    "XIRR": 0.136416,
+    "MaximumDrawdown": -0.19692,
+    "SharpeRatio": 1.666142,
+    "SortinoRatio": -1.591624
+  },
+  {
+    "name": "50_50_annual_rebal",
+    "label": "50/50 Value+Momentum (annual rebalance)",
+    "total_invested": 669965.0646790224,
+    "final_value": 973258.3394778845,
+    "TotalReturn": 0.4527,
+    "XIRR": 0.136906,
+    "MaximumDrawdown": -0.194176,
+    "SharpeRatio": 1.671998,
+    "SortinoRatio": 2.774702
+  },
+  {
+    "name": "dynamic_rotation",
+    "label": "Dynamic rotation (semi-annual, 10% shift)",
+    "total_invested": 669954.4257440894,
+    "final_value": 974567.0982870555,
+    "TotalReturn": 0.454677,
+    "XIRR": 0.137411,
+    "MaximumDrawdown": -0.210514,
+    "SharpeRatio": 1.635108,
+    "SortinoRatio": 2.641731
+  }
+]

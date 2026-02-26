@@ -217,13 +217,12 @@ class Simulator:
         current_portfolio = self.current_portfolio
 
         for fund_name, units in current_portfolio.items():
-            try:
-                nav = self.nav_data[fund_name].loc[date]["nav"]
-                fund_value = units * nav
-                total_value += fund_value
-            except KeyError:
-                self.logger.warning(f"NAV data not available for {fund_name} on {date}")
+            nav_on_or_before = self.nav_data[fund_name][self.nav_data[fund_name].index <= date]
+            if nav_on_or_before.empty:
+                self.logger.warning(f"NAV data not available for {fund_name} on or before {date}")
                 continue
+            nav = float(nav_on_or_before["nav"].iloc[-1])
+            total_value += units * nav
 
         return total_value
 
@@ -549,7 +548,7 @@ class Simulator:
             elif metric_name.lower() == "maximum drawdown":
                 metrics_instances.append(MaximumDrawdownMetric())
             elif metric_name.lower() == "sortino ratio":
-                metrics_instances.append(SortinoRatioMetric(frequency=self.strategy.frequency))
+                metrics_instances.append(SortinoRatioMetric(frequency="daily"))
             elif metric_name.lower() == "xirr":
                 metrics_instances.append(XIRRMetric())
             elif metric_name.lower() == "alpha":

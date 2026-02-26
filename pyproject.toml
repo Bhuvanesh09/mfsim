@@ -33,6 +33,7 @@ dependencies = [
 
 [project.scripts]
 mfsim-backtest = "mfsim.cli:main"
+mfsim-search = "mfsim.search:main"
 
 [project.urls]
 Homepage = "https://github.com/Bhuvanesh09/mfsim"
@@ -56,6 +57,11 @@ dev-dependencies = [
     "ipykernel>=6.0",
     "jupyter>=1.0",
     "ruff>=0.4",
+    "tabulate>=0.9.0",
+    "yfinance>=1.2.0",
+    "matplotlib>=3.10.8",
+    "seaborn>=0.13.2",
+    "jugaad-data>=0.22",
 ]
 
 [tool.ruff]

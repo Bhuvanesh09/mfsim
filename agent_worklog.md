@@ -128,3 +128,85 @@ The data loader abstraction is the right place to provide this — extend `BaseD
 - **`frequency: "never"` for buy-and-hold.** The existing `_is_rebalance_date` returns `False` for any unrecognized frequency string. Using `"never"` as the frequency for fixed allocation (no-rebalance) strategies leverages this behavior. It's readable and doesn't need code changes.
 
 - **SIP step-up via year-difference calculation, not date tracking.** The step-up logic uses `current_year - start_year` to determine the multiplier rather than tracking each annual boundary. This means the step-up applies immediately on Jan 1st rather than on the SIP anniversary. This matches the notebook's behavior.
+
+---
+
+## 2026-02-27 — Experiment 002: Adaptive Factor Rotation
+
+### What I did
+
+1. **Implemented three adaptive factor rotation strategies** in `mfsim/strategies/adaptive_strategies.py`:
+   - `TrendFilterStrategy` — uses a simple moving average on Nifty 50 to detect risk-on/risk-off regimes; tilts toward momentum when price is above SMA, toward value when below. Trend fund is loaded for signal computation only — never traded.
+   - `RelativeStrengthStrategy` — computes a weighted return edge (momentum vs value) across configurable lookback horizons (1m/3m/6m); maps the edge to a momentum weight via `clip(0.5 + sensitivity × edge, min_w, max_w)`.
+   - `DualSignalStrategy` — combines both signals with agreement logic: both risk-on AND RS ≥ 0.5 → amplify momentum; both risk-off AND RS < 0.5 → amplify value; disagreement → neutral 50/50.
+   - Shared `_to_target_orders()` helper handles hard-rebalancing to target weights using last available NAV (safe for non-trading days).
+
+2. **Extended the framework with new risk metrics** in `run_experiment.py`:
+   - Sortino Ratio (downside-only volatility, consistent with how Sharpe is already computed)
+   - Calmar Ratio (XIRR ÷ |Max Drawdown| — return per unit of worst-case loss)
+   - Rolling 12-month Sharpe figure — reveals consistency over time vs the snapshot Sharpe
+   - Period comparison figure — side-by-side bar chart across both study periods
+
+3. **Discovered and used niftyindices.com PR data API** for long-horizon NSE index history:
+   - The API at `https://niftyindices.com/Backpage.aspx/getHistoricaldatatabletoString` requires active browser session cookies (expire within hours). Script `download_nse_data.py` documents how to capture them via DevTools.
+   - Returns up to ~1 year per call; the downloader loops year-by-year and stitches results.
+   - Data is **Price Return (PR)** — dividends excluded. All TRI variants tried returned empty. ~1–1.5% XIRR lower than actual TRI-based fund performance, but relative rankings hold since all strategies use the same base.
+   - Correct index names for the API: `"Nifty 50"`, `"Nifty50 Value 20"`, `"NIFTY200MOMENTM30"` (no spaces, truncated "MOMENTUM" → "MOMENTM").
+   - Common window: Jan 2010–Dec 2025 (limited by Value 20 earliest availability).
+   - Alternative sources explored and rejected: `jugaad-data` (broken — NSE changed API format in 2021, `KeyError: 'd'`), `yfinance` (no Indian factor indices), `stooq` (same gap).
+
+4. **Two-period study design**:
+   - Period 1 (Mar 2015 → Dec 2025, ~10 years): full hyperparameter sweeps to find best parameters.
+   - Period 2 (Feb 2020 → Dec 2025, ~5 years): same parameters applied out-of-sample to stress-test against COVID crash and subsequent recovery.
+   - Starting from 2010 was rejected after observing that it captured the entire post-GFC bull run from the bottom, which inflated Momentum's advantage artificially.
+
+5. **Hyperparameter sweeps**:
+   - Sweep A: 20 runs (MA windows [50,100,150,200,250] × risk-on weights [55%,65%,75%,85%])
+   - Sweep B: 24 runs (6 horizon presets × sensitivities [0.5,1.0,2.0,4.0])
+   - Best A selected by XIRR; Best B selected by Sharpe
+
+### Bugs found and fixed
+
+**Bug 1 — `XIRRMetric` and `TotalReturnMetric`: exact end-date NAV lookup fails on holidays**
+- File: `mfsim/metrics/metrics_collection.py`
+- Symptom: `TotalReturn = -1.0`, `XIRR = NaN` when `end_date` is a market holiday (e.g. Dec 31 2025).
+- Root cause: Both metrics used exact-date matching — `nav[nav["date"] == date]` or `nav.loc[[date]]`. On a non-trading day, the lookup returns empty, so `final_value = 0`, making XIRR unsolvable and TotalReturn = (0 / invested) − 1 = −1.
+- Fix: Changed to "last available NAV on or before date": `nav[nav.index <= date].iloc[-1]`. Consistent with how `TaxAwareReturnMetric` already handled this correctly.
+
+**Bug 2 — `Simulator.get_portfolio_value()`: same exact-date issue**
+- File: `mfsim/backtester/simulator.py`
+- Symptom: Returns `0.0` with WARNING logs for any holiday-dated valuation call.
+- Fix: `nav_on_or_before = nav_df[nav_df.index <= date]`, use `.iloc[-1]` if non-empty.
+
+**Bug 3 — `SortinoRatioMetric`: wrong risk-free rate frequency**
+- File: `mfsim/backtester/simulator.py` (`_calculate_metrics`)
+- Symptom: Sortino ratio was negative for all strategies (−0.16 to −0.38) despite positive XIRR — physically impossible for a strategy with positive risk-adjusted returns.
+- Root cause: `_calculate_metrics` instantiated `SortinoRatioMetric(frequency=self.strategy.frequency)`. All strategies use `frequency="monthly"`, so `rf_daily = 0.05 / 12 = 0.417%`. But portfolio value history is computed on calendar days, giving typical daily returns of ~0.03%. The monthly risk-free rate dwarfed every daily return, making all excess returns negative and invalidating the ratio.
+- Fix: Hardcoded `frequency="daily"` (same as `SharpeRatioMetric`), giving `rf_daily = 0.05 / 252 = 0.020%`.
+
+**Bug 4 — `_DEFAULT_METRICS` in `adaptive_strategies.py` missing "Sortino Ratio"**
+- File: `mfsim/strategies/adaptive_strategies.py`
+- Symptom: Sortino showed `—` (NaN) for all adaptive strategies in final tables while baselines showed values.
+- Root cause: Adaptive strategy constructors use `_DEFAULT_METRICS` as default metrics list. This constant only contained the original 4 metrics; "Sortino Ratio" was never added when the metric was introduced.
+- Fix: Added `"Sortino Ratio"` to `_DEFAULT_METRICS`.
+
+### Decisions made
+
+- **PR data accepted for strategy comparison.** Absolute XIRR is ~1–1.5% below real-world TRI-based fund performance (dividends excluded). Since all strategies use the same PR base, relative rankings are unaffected. Documented clearly in experiment README and REPORT.md.
+
+- **Period 2 uses Period 1 hyperparameters.** Sweeping separately on the 2020–2025 window would be overfitting on a short, structurally unusual period (COVID crash + recovery). The correct scientific approach is to treat Period 2 as pure out-of-sample validation.
+
+- **`_DEFAULT_METRICS` updated rather than passing metrics per-call.** Sortino is a standard risk metric that all adaptive strategies should compute by default, not an experiment-specific addition. Updating the class-level constant is cleaner than threading a metrics argument through every strategy instantiation site.
+
+- **Rolling Sharpe uses Period 1 history (longer window).** A 252-day rolling window on the 5-year Period 2 would lose the first year of data, leaving only 4 years. Period 1's 10-year history gives a more meaningful rolling chart.
+
+### Key findings summary
+
+See `experiments/002_adaptive_factor_rotation/README.md` for full analysis and financial implications.
+
+Brief summary:
+- Momentum 30 (pure factor) delivered highest XIRR in both periods (17.35% and 17.76%)
+- Adaptive strategies marginally beat 50/50 Fixed in Period 1 (+8bps); meaningfully beat it in Period 2 (+40bps XIRR, −14bps max drawdown for Best A)
+- The trend filter's value lies in crash protection: Best A's Calmar (0.633) > Momentum (0.579) in Period 2
+- Low MA window noise and low signal sensitivity consistently win across both sweeps — suggesting gradual tilts, not aggressive factor switching
+- All Sortino ratios are similar across strategies (~0.73–0.77), meaning no strategy has a fundamentally different upside/downside character

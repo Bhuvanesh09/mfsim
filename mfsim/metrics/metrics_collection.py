@@ -110,18 +110,19 @@ class XIRRMetric(BaseMetric):
                 dates.append(idx)
             cash_flows.append(-row["amount"])
 
-        # Final portfolio value as a positive cash flow on the end date
+        # Final portfolio value as a positive cash flow on the end date.
+        # Use last available NAV on or before `date` so holidays don't zero out the value.
         final_value = 0
         for fund, units in current_portfolio.items():
             nav = nav_data[fund]
             if "date" in nav.columns:
-                nav_on_date = nav.loc[nav["date"] == date, "nav"]
+                nav_on_or_before = nav.loc[nav["date"] <= date]
             elif nav.index.name == "date":
-                nav_on_date = nav.loc[[date], "nav"] if date in nav.index else pd.Series([])
+                nav_on_or_before = nav[nav.index <= date]
             else:
-                nav_on_date = pd.Series([])
-            if not nav_on_date.empty:
-                final_value += units * nav_on_date.values[0]
+                nav_on_or_before = pd.DataFrame()
+            if not nav_on_or_before.empty:
+                final_value += units * float(nav_on_or_before["nav"].iloc[-1])
         if final_value != 0:
             cash_flows.append(final_value)
             dates.append(date)
@@ -168,19 +169,20 @@ class TotalReturnMetric(BaseMetric):
             Total return as a decimal (e.g., ``0.45`` for 45% return).
         """
         money_invested = portfolio_history["amount"].sum()
+        # Use last available NAV on or before `date` so holidays don't zero out the value.
         final_value = 0
         for fund, units in current_portfolio.items():
             nav_df = nav_data[fund]
             if "date" in nav_df.columns:
-                nav_on_date = nav_df.loc[nav_df["date"] == date, "nav"]
+                nav_on_or_before = nav_df.loc[nav_df["date"] <= date]
             elif nav_df.index.name == "date":
-                nav_on_date = nav_df.loc[[date], "nav"] if date in nav_df.index else pd.Series([])
+                nav_on_or_before = nav_df[nav_df.index <= date]
             else:
                 raise ValueError(
                     f"Invalid NAV data format for fund {fund}. Expected 'date' as column or index."
                 )
-            if not nav_on_date.empty:
-                final_value += units * nav_on_date.values[0]
+            if not nav_on_or_before.empty:
+                final_value += units * float(nav_on_or_before["nav"].iloc[-1])
         total_return = (final_value / money_invested) - 1
         return float(total_return)
 
@@ -557,14 +559,16 @@ class TaxAwareReturnMetric(BaseMetric):
             Post-tax total return as a decimal (e.g., ``0.35`` for 35%).
             Returns ``float('nan')`` if total invested is zero.
         """
-        total_invested = portfolio_history["amount"].sum()
+        # Net invested = gross buys minus rebalancing sells (correct denominator)
+        total_invested = portfolio_history[portfolio_history["amount"] > 0]["amount"].sum()
 
-        # 1. Calculate final portfolio value (pre-tax)
+        # 1. Calculate final portfolio value (pre-tax), using last available NAV
         final_value = 0.0
         for fund, units in current_portfolio.items():
             nav_df = nav_data[fund]
-            if date in nav_df.index:
-                final_value += units * nav_df.loc[date, "nav"]
+            nav_on_or_before = nav_df[nav_df.index <= date]
+            if not nav_on_or_before.empty:
+                final_value += units * float(nav_on_or_before["nav"].iloc[-1])
 
         # 2. Calculate tax on realized gains
         realized_tax = self._compute_realized_tax(date)
@@ -581,30 +585,53 @@ class TaxAwareReturnMetric(BaseMetric):
         return float((post_tax_value / total_invested) - 1)
 
     def _compute_realized_tax(self, end_date):
-        """Compute tax on all realized gains.
+        """Compute tax on all realized gains, applying the LTCG exemption per financial year.
+
+        Indian tax rules:
+        - LTCG and LTCL are netted per financial year; the ₹1.25L exemption
+          applies to the net LTCG in each FY.
+        - STCL offsets STCG first, then any remaining STCL offsets LTCG.
+        - Losses cannot be carried forward in this simplified model.
 
         Args:
-            end_date: Simulation end date (unused, reserved for future
-                multi-year exemption logic).
+            end_date: Simulation end date (unused here; exemption is applied
+                per financial year of the sell date).
 
         Returns:
-            Total tax liability on realized gains.
+            Total tax liability on realized gains across all financial years.
         """
-        ltcg_total = 0.0
-        stcg_total = 0.0
+        # Bucket gains/losses by Indian financial year (Apr–Mar)
+        # fy_key: the year in which the FY starts (e.g. 2023 for FY 2023-24)
+        fy_ltcg: dict[int, float] = {}
+        fy_stcg: dict[int, float] = {}
 
-        for gain in self.lot_tracker.realized_gains:
-            if gain.gain <= 0:
-                continue  # No tax on losses (simplified)
-            if gain.holding_days > self.LTCG_HOLDING_DAYS:
-                ltcg_total += gain.gain
+        for rg in self.lot_tracker.realized_gains:
+            sell_date = rg.sell_date
+            fy = sell_date.year if sell_date.month >= 4 else sell_date.year - 1
+            if rg.holding_days > self.LTCG_HOLDING_DAYS:
+                fy_ltcg[fy] = fy_ltcg.get(fy, 0.0) + rg.gain
             else:
-                stcg_total += gain.gain
+                fy_stcg[fy] = fy_stcg.get(fy, 0.0) + rg.gain
 
-        # Apply LTCG exemption
-        ltcg_taxable = max(0, ltcg_total - self.LTCG_EXEMPTION)
+        total_tax = 0.0
+        all_fys = set(fy_ltcg) | set(fy_stcg)
+        for fy in all_fys:
+            ltcg = fy_ltcg.get(fy, 0.0)
+            stcg = fy_stcg.get(fy, 0.0)
 
-        return ltcg_taxable * self.LTCG_RATE + stcg_total * self.STCG_RATE
+            # STCL offsets STCG first, then any remaining STCL offsets LTCG
+            if stcg < 0:
+                ltcg += stcg  # STCL reduces LTCG
+                stcg = 0.0
+
+            # LTCL offsets LTCG within the same FY
+            # (negative ltcg means net loss — no tax, no carryforward here)
+            ltcg_taxable = max(0.0, ltcg - self.LTCG_EXEMPTION)
+            stcg_taxable = max(0.0, stcg)
+
+            total_tax += ltcg_taxable * self.LTCG_RATE + stcg_taxable * self.STCG_RATE
+
+        return total_tax
 
     def _compute_unrealized_tax(self, end_date, nav_data):
         """Compute tax on unrealized gains (if portfolio were liquidated at end_date).
@@ -616,23 +643,30 @@ class TaxAwareReturnMetric(BaseMetric):
         Returns:
             Total tax liability on unrealized gains.
         """
+        # All unrealized lots are hypothetically sold in the same FY at end_date,
+        # so gains and losses net within that single liquidation event.
         ltcg_total = 0.0
         stcg_total = 0.0
 
         for lot in self.lots_at_end:
             fund = lot.fund_name
-            if end_date not in nav_data[fund].index:
+            nav_df = nav_data[fund]
+            nav_df_filtered = nav_df[nav_df.index <= end_date]
+            if nav_df_filtered.empty:
                 continue
-            current_nav = nav_data[fund].loc[end_date, "nav"]
+            current_nav = float(nav_df_filtered["nav"].iloc[-1])
             gain = (current_nav - lot.cost_per_unit) * lot.units
-            if gain <= 0:
-                continue
 
             holding_days = (end_date - lot.purchase_date).days
             if holding_days > self.LTCG_HOLDING_DAYS:
-                ltcg_total += gain
+                ltcg_total += gain  # includes losses (negative)
             else:
                 stcg_total += gain
 
-        ltcg_taxable = max(0, ltcg_total - self.LTCG_EXEMPTION)
-        return ltcg_taxable * self.LTCG_RATE + stcg_total * self.STCG_RATE
+        # STCL offsets STCG first, then remaining STCL offsets LTCG
+        if stcg_total < 0:
+            ltcg_total += stcg_total
+            stcg_total = 0.0
+
+        ltcg_taxable = max(0.0, ltcg_total - self.LTCG_EXEMPTION)
+        return ltcg_taxable * self.LTCG_RATE + max(0.0, stcg_total) * self.STCG_RATE

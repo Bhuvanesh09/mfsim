@@ -1,0 +1,10 @@
+# Buy-and-hold Nifty 50 Value 20 Index Fund (Nippon India, Direct Growth).
+# Pure value factor exposure — no rebalancing.
+type: "fixed_allocation"
+frequency: "monthly"
+
+fund_list:
+  - "Nippon India Nifty 50 Value 20 Index Fund - Direct Plan - Growth Option"
+
+allocation:
+  "Nippon India Nifty 50 Value 20 Index Fund - Direct Plan - Growth Option": 1.0
