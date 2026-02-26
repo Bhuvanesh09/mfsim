@@ -17,22 +17,22 @@
 ## 2. Sweep A — TrendFilterStrategy
 
 **Parameters swept:**
-- MA Window: [50, 100, 150, 200, 250]
-- Risk-on Momentum Weight: ['55%', '65%', '75%', '85%']
+- MA Window: [50, 100, 150, 200, 250, 300, 350, 400, 500]
+- Risk-on Momentum Weight: ['35%', '40%', '45%', '50%', '55%', '65%', '75%', '85%']
   (Risk-off weight = 1 − risk_on_weight, symmetric)
 
-**Total runs:** 20
+**Total runs:** 72
 **Best selected by:** highest XIRR
 
 ### Top-5 by XIRR
 
 | MA Window | Risk-on Weight | Risk-off Weight | XIRR | Sharpe | Max DD |
 | --- | --- | --- | --- | --- | --- |
-| 250 | 55% | 45% | 15.89% | 0.593 | -31.82% |
-| 250 | 65% | 35% | 15.63% | 0.593 | -31.54% |
-| 200 | 55% | 45% | 15.62% | 0.591 | -31.82% |
-| 150 | 55% | 45% | 15.59% | 0.590 | -31.82% |
-| 50 | 55% | 45% | 15.57% | 0.589 | -31.82% |
+| 100 | 35% | 65% | 17.31% | 0.601 | -32.37% |
+| 50 | 35% | 65% | 17.31% | 0.603 | -32.37% |
+| 150 | 35% | 65% | 17.27% | 0.600 | -32.38% |
+| 200 | 35% | 65% | 17.17% | 0.599 | -32.38% |
+| 400 | 85% | 15% | 17.01% | 0.610 | -31.08% |
 
 ### Heatmap
 
@@ -73,10 +73,10 @@
 ## 4. Best Parameters Identified
 
 ### Option A (TrendFilter)
-- **MA Window:** 250
-- **Risk-on momentum weight:** 55%
-- **Risk-off momentum weight:** 45%
-- **XIRR:** 15.89%
+- **MA Window:** 100
+- **Risk-on momentum weight:** 35%
+- **Risk-off momentum weight:** 65%
+- **XIRR:** 17.31%
 
 ### Option B (RelativeStrength)
 - **Horizon preset:** `1m_only`
@@ -87,7 +87,7 @@
 
 ## 5. Option C — DualSignalStrategy
 
-Combines best A params (ma_window=250, risk_on_m_weight=0.55)
+Combines best A params (ma_window=100, risk_on_m_weight=0.35)
 with best B params (horizon_preset=`1m_only`, sensitivity=0.5).
 
 Agreement logic:
@@ -105,9 +105,9 @@ Agreement logic:
 | 50/50 Fixed (no rebalance) | ₹1,399,967 | ₹3,705,358 | 15.82% | 0.592 | 0.734 | 0.496 | -31.87% |
 | Value 20 only | ₹1,399,967 | ₹3,324,865 | 14.11% | 0.570 | 0.759 | 0.425 | -33.16% |
 | Momentum 30 only | ₹1,399,967 | ₹4,085,852 | 17.35% | 0.619 | 0.774 | 0.530 | -32.75% |
-| Best A: TF ma=250 ro=55% | ₹1,399,925 | ₹3,722,180 | 15.89% | 0.593 | 0.735 | 0.499 | -31.82% |
+| Best A: TF ma=100 ro=35% | ₹1,399,617 | ₹4,076,477 | 17.31% | 0.601 | 0.754 | 0.535 | -32.37% |
 | Best B: RS 1m_only s=0.5 | ₹1,399,771 | ₹3,683,291 | 15.72% | 0.591 | 0.733 | 0.492 | -31.98% |
-| Option C: Dual (ma=250, ro=55%, preset=1m_only, s=0.5) | ₹1,399,827 | ₹3,724,445 | 15.90% | 0.592 | 0.735 | 0.498 | -31.95% |
+| Option C: Dual (ma=100, ro=35%, preset=1m_only, s=0.5) | ₹1,399,851 | ₹3,728,946 | 15.92% | 0.592 | 0.735 | 0.498 | -31.95% |
 
 ![Final Comparison](figures/final_comparison.png)
 
@@ -139,9 +139,9 @@ Initial ₹100,000 + ₹10,000/month from 2020-02-01.
 | 50/50 Fixed (no rebalance) | 16.28% | 0.711 | 0.880 | 0.614 | -26.49% | 72.57% |
 | Value 20 only | 14.72% | 0.711 | 0.926 | 0.484 | -30.39% | 63.84% |
 | Momentum 30 only | 17.76% | 0.726 | 0.899 | 0.579 | -30.67% | 81.30% |
-| Best A: TF ma=250 ro=55% | 16.68% | 0.714 | 0.881 | 0.633 | -26.35% | 74.89% |
+| Best A: TF ma=100 ro=35% | 17.74% | 0.720 | 0.899 | 0.659 | -26.91% | 81.16% |
 | Best B: RS 1m_only s=0.5 | 16.33% | 0.712 | 0.879 | 0.616 | -26.52% | 72.87% |
-| Option C: Dual (ma=250, ro=55%, preset=1m_only, s=0.5) | 16.53% | 0.713 | 0.881 | 0.624 | -26.49% | 74.04% |
+| Option C: Dual (ma=100, ro=35%, preset=1m_only, s=0.5) | 16.53% | 0.713 | 0.881 | 0.624 | -26.49% | 74.05% |
 
 ![Period Comparison](figures/period_comparison.png)
 
