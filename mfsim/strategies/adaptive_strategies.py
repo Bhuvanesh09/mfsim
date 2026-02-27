@@ -10,6 +10,12 @@ fund based on market signals, rather than using fixed 50/50 blends:
   strength of momentum vs value to tilt allocations.
 - :class:`DualSignalStrategy` (Option C): combines both signals — agrees =
   amplify, disagrees = neutral.
+
+Each strategy supports optional **trigger-based rebalancing**: when
+``trigger_enabled=True``, the strategy's signal is checked daily and a
+mid-month rebalance fires if the signal changes and the cooldown period has
+elapsed.  When ``trigger_enabled=False`` (the default), behaviour is
+identical to time-based-only rebalancing.
 """
 
 from datetime import timedelta
@@ -64,11 +70,83 @@ def _to_target_orders(portfolio, nav_data, current_date, target_weights):
 
 
 # ---------------------------------------------------------------------------
+# Trigger mixin
+# ---------------------------------------------------------------------------
+
+
+class _TriggerMixin:
+    """Mixin providing cooldown-aware trigger-based rebalance detection.
+
+    Subclasses must implement ``_current_signal(nav_data, current_date)``
+    which returns a hashable signal value representing the strategy's current
+    market view.  The mixin tracks signal changes and enforces a cooldown
+    period between triggered rebalances.
+
+    Parameters (passed via ``_init_trigger``):
+        trigger_enabled: Whether to check signals daily. Default ``False``.
+        cooldown_days: Minimum calendar days between triggered rebalances.
+            Default 21 (~1 month).
+        signal_threshold: Minimum absolute change in signal to count as a
+            change.  Only meaningful for continuous signals (RS, Dual).
+            Default 0.0.
+    """
+
+    def _init_trigger(self, trigger_enabled=False, cooldown_days=21, signal_threshold=0.0):
+        self._trigger_enabled = trigger_enabled
+        self._cooldown_days = cooldown_days
+        self._signal_threshold = signal_threshold
+        self._last_signal = None
+        self._last_trigger_date = None
+        self._trigger_count = 0
+
+    def _signal_changed(self, old_signal, new_signal):
+        """Return True if the signal has materially changed.
+
+        Override for continuous signals to apply threshold logic.
+        """
+        return old_signal != new_signal
+
+    def _check_trigger(self, nav_data, current_date):
+        """Check whether a trigger-based rebalance should fire today."""
+        if not self._trigger_enabled:
+            return False
+
+        current_signal = self._current_signal(nav_data, current_date)
+
+        # First observation — just record, don't trigger
+        if self._last_signal is None:
+            self._last_signal = current_signal
+            return False
+
+        if not self._signal_changed(self._last_signal, current_signal):
+            return False
+
+        # Cooldown enforcement
+        if self._last_trigger_date is not None:
+            if (current_date - self._last_trigger_date).days < self._cooldown_days:
+                return False
+
+        # Signal changed and cooldown passed — fire trigger
+        self._last_signal = current_signal
+        self._last_trigger_date = current_date
+        self._trigger_count += 1
+        return True
+
+    def _update_signal_state(self, nav_data, current_date):
+        """Keep signal state current after a scheduled rebalance."""
+        if self._trigger_enabled:
+            self._last_signal = self._current_signal(nav_data, current_date)
+
+    def should_rebalance(self, portfolio, nav_data, current_date):
+        return self._check_trigger(nav_data, current_date)
+
+
+# ---------------------------------------------------------------------------
 # Option A: TrendFilterStrategy
 # ---------------------------------------------------------------------------
 
 
-class TrendFilterStrategy(BaseStrategy):
+class TrendFilterStrategy(_TriggerMixin, BaseStrategy):
     """Allocate between value and momentum based on a trend-filter regime.
 
     Uses a simple moving average (SMA) over ``ma_window`` days on a reference
@@ -87,6 +165,8 @@ class TrendFilterStrategy(BaseStrategy):
         risk_off_m_weight: Momentum weight when regime is risk-off. Default 0.3.
         frequency: Rebalancing frequency. Default ``'monthly'``.
         metrics: List of metric names. Defaults to the standard four.
+        trigger_enabled: Enable daily signal checking. Default ``False``.
+        cooldown_days: Minimum days between triggered rebalances. Default 21.
     """
 
     def __init__(
@@ -99,6 +179,8 @@ class TrendFilterStrategy(BaseStrategy):
         risk_off_m_weight=0.3,
         frequency="monthly",
         metrics=None,
+        trigger_enabled=False,
+        cooldown_days=21,
     ):
         metrics = metrics or _DEFAULT_METRICS
         super().__init__(frequency, metrics, [value_fund, momentum_fund, trend_fund])
@@ -108,6 +190,7 @@ class TrendFilterStrategy(BaseStrategy):
         self.ma_window = ma_window
         self.risk_on_m_weight = risk_on_m_weight
         self.risk_off_m_weight = risk_off_m_weight
+        self._init_trigger(trigger_enabled=trigger_enabled, cooldown_days=cooldown_days)
 
     def _regime(self, nav_data, date):
         """Return ``'risk_on'``, ``'risk_off'``, or ``'neutral'``.
@@ -121,6 +204,10 @@ class TrendFilterStrategy(BaseStrategy):
         sma = float(avail.iloc[-self.ma_window :].mean())
         current = float(avail.iloc[-1])
         return "risk_on" if current >= sma else "risk_off"
+
+    def _current_signal(self, nav_data, current_date):
+        """Signal = discrete regime string."""
+        return self._regime(nav_data, current_date)
 
     def _momentum_weight(self, nav_data, date):
         """Return the momentum fund weight for the current regime."""
@@ -138,6 +225,7 @@ class TrendFilterStrategy(BaseStrategy):
     def rebalance(self, portfolio, nav_data, date):
         m_w = self._momentum_weight(nav_data, date)
         target = {self.value_fund: 1.0 - m_w, self.momentum_fund: m_w}
+        self._update_signal_state(nav_data, date)
         return _to_target_orders(portfolio, nav_data, date, target)
 
 
@@ -146,7 +234,7 @@ class TrendFilterStrategy(BaseStrategy):
 # ---------------------------------------------------------------------------
 
 
-class RelativeStrengthStrategy(BaseStrategy):
+class RelativeStrengthStrategy(_TriggerMixin, BaseStrategy):
     """Allocate based on multi-horizon relative strength of momentum vs value.
 
     Computes a weighted average of momentum-vs-value return edges across
@@ -169,6 +257,10 @@ class RelativeStrengthStrategy(BaseStrategy):
         max_weight: Ceiling on momentum weight. Default 0.8.
         frequency: Rebalancing frequency. Default ``'monthly'``.
         metrics: List of metric names. Defaults to the standard four.
+        trigger_enabled: Enable daily signal checking. Default ``False``.
+        cooldown_days: Minimum days between triggered rebalances. Default 21.
+        signal_threshold: Minimum absolute change in momentum weight to
+            trigger. Default 0.05.
     """
 
     def __init__(
@@ -181,6 +273,9 @@ class RelativeStrengthStrategy(BaseStrategy):
         max_weight=0.8,
         frequency="monthly",
         metrics=None,
+        trigger_enabled=False,
+        cooldown_days=21,
+        signal_threshold=0.05,
     ):
         metrics = metrics or _DEFAULT_METRICS
         super().__init__(frequency, metrics, [value_fund, momentum_fund])
@@ -190,6 +285,11 @@ class RelativeStrengthStrategy(BaseStrategy):
         self.sensitivity = sensitivity
         self.min_weight = min_weight
         self.max_weight = max_weight
+        self._init_trigger(
+            trigger_enabled=trigger_enabled,
+            cooldown_days=cooldown_days,
+            signal_threshold=signal_threshold,
+        )
 
     def _momentum_weight(self, nav_data, date):
         """Compute momentum fund weight from multi-horizon relative strength."""
@@ -212,6 +312,14 @@ class RelativeStrengthStrategy(BaseStrategy):
         weighted_edge /= total_weight
         return float(np.clip(0.5 + self.sensitivity * weighted_edge, self.min_weight, self.max_weight))
 
+    def _current_signal(self, nav_data, current_date):
+        """Signal = continuous momentum weight (float)."""
+        return self._momentum_weight(nav_data, current_date)
+
+    def _signal_changed(self, old_signal, new_signal):
+        """Threshold-based: only trigger if weight moved by >= signal_threshold."""
+        return abs(new_signal - old_signal) >= self._signal_threshold
+
     def allocate_money(self, money, nav_data, date):
         m_w = self._momentum_weight(nav_data, date)
         return {self.value_fund: money * (1.0 - m_w), self.momentum_fund: money * m_w}
@@ -219,6 +327,7 @@ class RelativeStrengthStrategy(BaseStrategy):
     def rebalance(self, portfolio, nav_data, date):
         m_w = self._momentum_weight(nav_data, date)
         target = {self.value_fund: 1.0 - m_w, self.momentum_fund: m_w}
+        self._update_signal_state(nav_data, date)
         return _to_target_orders(portfolio, nav_data, date, target)
 
 
@@ -227,7 +336,7 @@ class RelativeStrengthStrategy(BaseStrategy):
 # ---------------------------------------------------------------------------
 
 
-class DualSignalStrategy(BaseStrategy):
+class DualSignalStrategy(_TriggerMixin, BaseStrategy):
     """Combine trend-filter regime and relative-strength signal.
 
     Agreement logic:
@@ -255,6 +364,10 @@ class DualSignalStrategy(BaseStrategy):
         max_weight: Ceiling on momentum weight. Default 0.8.
         frequency: Rebalancing frequency. Default ``'monthly'``.
         metrics: List of metric names. Defaults to the standard four.
+        trigger_enabled: Enable daily signal checking. Default ``False``.
+        cooldown_days: Minimum days between triggered rebalances. Default 21.
+        signal_threshold: Minimum absolute change in RS weight to trigger.
+            Default 0.05.
     """
 
     def __init__(
@@ -271,6 +384,9 @@ class DualSignalStrategy(BaseStrategy):
         max_weight=0.8,
         frequency="monthly",
         metrics=None,
+        trigger_enabled=False,
+        cooldown_days=21,
+        signal_threshold=0.05,
     ):
         metrics = metrics or _DEFAULT_METRICS
         super().__init__(frequency, metrics, [value_fund, momentum_fund, trend_fund])
@@ -284,6 +400,11 @@ class DualSignalStrategy(BaseStrategy):
         self.sensitivity = sensitivity
         self.min_weight = min_weight
         self.max_weight = max_weight
+        self._init_trigger(
+            trigger_enabled=trigger_enabled,
+            cooldown_days=cooldown_days,
+            signal_threshold=signal_threshold,
+        )
 
     def _regime(self, nav_data, date):
         """Return trend-filter regime: ``'risk_on'``, ``'risk_off'``, or ``'neutral'``."""
@@ -314,6 +435,18 @@ class DualSignalStrategy(BaseStrategy):
             return 0.5
         return 0.5 + self.sensitivity * (weighted_edge / total_weight)
 
+    def _current_signal(self, nav_data, current_date):
+        """Signal = (regime, rs_weight) tuple."""
+        return (self._regime(nav_data, current_date), self._rs_weight(nav_data, current_date))
+
+    def _signal_changed(self, old_signal, new_signal):
+        """Either regime changed OR RS weight moved by >= threshold."""
+        old_regime, old_rs = old_signal
+        new_regime, new_rs = new_signal
+        if old_regime != new_regime:
+            return True
+        return abs(new_rs - old_rs) >= self._signal_threshold
+
     def _target_weights(self, nav_data, date):
         """Compute target weights by combining both signals."""
         regime = self._regime(nav_data, date)
@@ -334,4 +467,5 @@ class DualSignalStrategy(BaseStrategy):
         return {fund: money * w for fund, w in weights.items()}
 
     def rebalance(self, portfolio, nav_data, date):
+        self._update_signal_state(nav_data, date)
         return _to_target_orders(portfolio, nav_data, date, self._target_weights(nav_data, date))
