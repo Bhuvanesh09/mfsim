@@ -83,14 +83,13 @@ class RebalancingStrategy(BaseStrategy):
         nav_on_date = {}
         for fund, units in portfolio.items():
             nav_df = nav_data[fund]
-            try:
-                nav_val = nav_df.loc[current_date, "nav"]
-                if isinstance(nav_val, pd.Series):
-                    nav_val = nav_val.iloc[0]
-                nav_on_date[fund] = float(nav_val)
-                total_value += units * float(nav_val)
-            except KeyError:
+            nav_up_to_date = nav_df[nav_df.index <= current_date].sort_index()
+            if nav_up_to_date.empty:
                 nav_on_date[fund] = None
+                continue
+            nav_val = nav_up_to_date["nav"].iloc[-1]
+            nav_on_date[fund] = float(nav_val)
+            total_value += units * float(nav_val)
 
         for fund, pct in self.allocation.items():
             target_value = total_value * pct

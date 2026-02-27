@@ -23,10 +23,41 @@ from scipy.optimize import newton
 from .base_metric import BaseMetric
 
 
+def latest_nav_on_or_before(nav_df, date):
+    """Return latest NAV at or before `date` for index-based or column-based NAV tables."""
+    if "date" in nav_df.columns:
+        df = nav_df.copy()
+        if "nav" not in df.columns:
+            raise ValueError("NAV data must contain a 'nav' column")
+        df["date"] = pd.to_datetime(df["date"], errors="coerce", dayfirst=True)
+        df["nav"] = pd.to_numeric(df["nav"], errors="coerce")
+        df = df.dropna(subset=["date", "nav"])
+        eligible = df.loc[df["date"] <= date]
+        if eligible.empty:
+            return None
+        latest_idx = eligible["date"].idxmax()
+        return float(eligible.loc[latest_idx, "nav"])
+
+    if "nav" not in nav_df.columns:
+        raise ValueError("NAV data must contain a 'nav' column")
+    if not isinstance(nav_df.index, pd.DatetimeIndex):
+        raise ValueError("NAV data must have a DatetimeIndex or a 'date' column")
+
+    nav_series = pd.to_numeric(nav_df["nav"], errors="coerce")
+    eligible = nav_series[(nav_series.index <= date) & nav_series.notna()]
+    if eligible.empty:
+        return None
+    latest_date = eligible.index.max()
+    latest_value = eligible.loc[latest_date]
+    if isinstance(latest_value, pd.Series):
+        latest_value = latest_value.iloc[-1]
+    return float(latest_value)
+
+
 def compute_portfolio_value_history(portfolio_history, nav_data, current_date):
     """Reconstruct daily portfolio value from transaction history and NAV data.
 
-    For each calendar day from the first transaction to ``current_date``,
+    For each trading date observed in the NAV data up to ``current_date``,
     computes the total portfolio value by multiplying each fund's
     cumulative units held by its NAV on that day.
 
@@ -40,8 +71,20 @@ def compute_portfolio_value_history(portfolio_history, nav_data, current_date):
         pandas Series indexed by date with portfolio value as values.
     """
     portfolio_history = portfolio_history.sort_values("date")
-
-    all_dates = pd.date_range(start=portfolio_history.index.min(), end=current_date, freq="D")
+    all_dates = pd.DatetimeIndex([])
+    for nav_df in nav_data.values():
+        if "date" in nav_df.columns:
+            fund_dates = pd.to_datetime(nav_df["date"], errors="coerce", dayfirst=True)
+            fund_dates = pd.DatetimeIndex(fund_dates.dropna())
+        elif isinstance(nav_df.index, pd.DatetimeIndex):
+            fund_dates = nav_df.index
+        else:
+            continue
+        fund_dates = fund_dates[
+            (fund_dates >= portfolio_history.index.min()) & (fund_dates <= current_date)
+        ]
+        all_dates = all_dates.union(fund_dates)
+    all_dates = all_dates.union(pd.DatetimeIndex(portfolio_history.index)).sort_values()
 
     holdings_df = pd.DataFrame(index=all_dates, columns=nav_data.keys()).fillna(0.0)
 
@@ -54,10 +97,17 @@ def compute_portfolio_value_history(portfolio_history, nav_data, current_date):
 
     portfolio_values = pd.Series(0.0, index=all_dates, dtype=float)
     for fund, nav_df in nav_data.items():
-        nav_df = nav_df[nav_df.index <= current_date]
-        # Reindex to all calendar days and forward-fill so weekends/holidays
-        # carry the last known NAV instead of producing NaN/zero.
-        nav_aligned = nav_df["nav"].reindex(all_dates).ffill()
+        if "date" in nav_df.columns:
+            nav_index = pd.to_datetime(nav_df["date"], errors="coerce", dayfirst=True)
+            nav_values = pd.to_numeric(nav_df["nav"], errors="coerce")
+            nav_series = pd.Series(nav_values.values, index=nav_index)
+        else:
+            nav_series = pd.to_numeric(nav_df["nav"], errors="coerce")
+            nav_series.index = pd.to_datetime(nav_series.index, errors="coerce")
+        nav_series = nav_series[nav_series.index.notna()]
+        nav_series = nav_series[nav_series.index <= current_date].sort_index()
+        # Reindex to trading dates and forward-fill for funds with sparse calendars.
+        nav_aligned = nav_series.reindex(all_dates).ffill().fillna(0.0)
         holdings = holdings_df[fund]
         portfolio_values += holdings * nav_aligned
 
@@ -114,15 +164,9 @@ class XIRRMetric(BaseMetric):
         # Use last available NAV on or before `date` so holidays don't zero out the value.
         final_value = 0
         for fund, units in current_portfolio.items():
-            nav = nav_data[fund]
-            if "date" in nav.columns:
-                nav_on_or_before = nav.loc[nav["date"] <= date]
-            elif nav.index.name == "date":
-                nav_on_or_before = nav[nav.index <= date]
-            else:
-                nav_on_or_before = pd.DataFrame()
-            if not nav_on_or_before.empty:
-                final_value += units * float(nav_on_or_before["nav"].iloc[-1])
+            nav = latest_nav_on_or_before(nav_data[fund], date)
+            if nav is not None:
+                final_value += units * nav
         if final_value != 0:
             cash_flows.append(final_value)
             dates.append(date)
@@ -172,17 +216,9 @@ class TotalReturnMetric(BaseMetric):
         # Use last available NAV on or before `date` so holidays don't zero out the value.
         final_value = 0
         for fund, units in current_portfolio.items():
-            nav_df = nav_data[fund]
-            if "date" in nav_df.columns:
-                nav_on_or_before = nav_df.loc[nav_df["date"] <= date]
-            elif nav_df.index.name == "date":
-                nav_on_or_before = nav_df[nav_df.index <= date]
-            else:
-                raise ValueError(
-                    f"Invalid NAV data format for fund {fund}. Expected 'date' as column or index."
-                )
-            if not nav_on_or_before.empty:
-                final_value += units * float(nav_on_or_before["nav"].iloc[-1])
+            nav = latest_nav_on_or_before(nav_data[fund], date)
+            if nav is not None:
+                final_value += units * nav
         total_return = (final_value / money_invested) - 1
         return float(total_return)
 
@@ -565,10 +601,9 @@ class TaxAwareReturnMetric(BaseMetric):
         # 1. Calculate final portfolio value (pre-tax), using last available NAV
         final_value = 0.0
         for fund, units in current_portfolio.items():
-            nav_df = nav_data[fund]
-            nav_on_or_before = nav_df[nav_df.index <= date]
-            if not nav_on_or_before.empty:
-                final_value += units * float(nav_on_or_before["nav"].iloc[-1])
+            nav = latest_nav_on_or_before(nav_data[fund], date)
+            if nav is not None:
+                final_value += units * nav
 
         # 2. Calculate tax on realized gains
         realized_tax = self._compute_realized_tax(date)
@@ -650,11 +685,9 @@ class TaxAwareReturnMetric(BaseMetric):
 
         for lot in self.lots_at_end:
             fund = lot.fund_name
-            nav_df = nav_data[fund]
-            nav_df_filtered = nav_df[nav_df.index <= end_date]
-            if nav_df_filtered.empty:
+            current_nav = latest_nav_on_or_before(nav_data[fund], end_date)
+            if current_nav is None:
                 continue
-            current_nav = float(nav_df_filtered["nav"].iloc[-1])
             gain = (current_nav - lot.cost_per_unit) * lot.units
 
             holding_days = (end_date - lot.purchase_date).days

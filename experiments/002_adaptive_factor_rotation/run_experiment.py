@@ -66,7 +66,7 @@ MOMENTUM = "NIFTY200MOMENTM30"
 NIFTY50 = "Nifty 50"
 
 START = "2015-03-01"   # main sweep period — avoids post-GFC recovery tailwind
-START_P2 = "2020-02-01"  # COVID + recent bear market stress test (out-of-sample)
+START_P2 = "2020-02-01"  # COVID + recent bear market stress-test subperiod
 END = "2025-12-31"
 INITIAL = 100_000
 SIP = 10_000
@@ -424,7 +424,10 @@ def fig_period_comparison(p1_results, p2_results):
         if col != "MaximumDrawdown":
             ax.legend(fontsize=7)
 
-    fig.suptitle("Experiment 002 — Period Comparison (sweeps on P1, P2 is out-of-sample)", fontsize=12)
+    fig.suptitle(
+        "Experiment 002 — Period Comparison (P2 reuses P1 params; stress subperiod)",
+        fontsize=12,
+    )
     fig.tight_layout()
     path = FIGURES_DIR / "period_comparison.png"
     fig.savefig(path, dpi=150, bbox_inches="tight")
@@ -612,7 +615,7 @@ indicate stretches where the strategy was destroying risk-adjusted value.
 
 ## 9. Period 2 — COVID Stress Test (Feb 2020 → Dec 2025)
 
-Strategies use the **same parameters** found in Period 1 sweeps (out-of-sample).
+Strategies use the **same parameters** found in Period 1 sweeps (stress subperiod check, not out-of-sample).
 Initial ₹{INITIAL:,} + ₹{SIP:,}/month from {START_P2}.
 
 {_table_md(p2_rows, ["Strategy", "XIRR", "Sharpe", "Sortino", "Calmar", "Max DD", "Total Return"])}
@@ -814,10 +817,10 @@ def main():
     fig_rolling_sharpe(sim_rows)
 
     # -----------------------------------------------------------------------
-    # Step 8: Period 2 — Feb 2020 COVID stress test (out-of-sample)
+    # Step 8: Period 2 — Feb 2020 COVID stress-test subperiod
     # -----------------------------------------------------------------------
     print(f"\n=== PERIOD 2: {START_P2} – {END} (COVID + bear market stress test) ===")
-    print("  (Using same best-A / best-B params from Period 1 sweep — out-of-sample)")
+    print("  (Using same best-A / best-B params from Period 1 sweep — stress subperiod check)")
 
     p2_baselines = [
         ("Nifty 50 (buy & hold)", _FixedAlloc([NIFTY50], {NIFTY50: 1.0})),
@@ -873,7 +876,7 @@ def main():
             f"{_fmt_f(r['Calmar']):>7} {_fmt_pct(r['MaximumDrawdown']):>9}"
         )
 
-    print(f"\n=== PERIOD 2 SUMMARY (Feb 2020 – Dec 2025, out-of-sample) ===")
+    print(f"\n=== PERIOD 2 SUMMARY (Feb 2020 – Dec 2025, stress subperiod) ===")
     print(f"{'Strategy':<55} {'XIRR':>8} {'Sharpe':>7} {'Sortino':>8} {'Calmar':>7} {'Max DD':>9}")
     print("-" * 100)
     for r in period2_results:

@@ -210,3 +210,76 @@ Brief summary:
 - The trend filter's value lies in crash protection: Best A's Calmar (0.633) > Momentum (0.579) in Period 2
 - Low MA window noise and low signal sensitivity consistently win across both sweeps — suggesting gradual tilts, not aggressive factor switching
 - All Sortino ratios are similar across strategies (~0.73–0.77), meaning no strategy has a fundamentally different upside/downside character
+
+---
+
+## 2026-02-27 — Correctness Hardening (Critical Fix Pass)
+
+### What I did
+
+1. **Created an isolated fix branch**: `correctness-hardening`.
+
+2. **Fixed NAV ordering and valuation correctness for MFAPI data path**:
+   - Added strict NAV normalization in `MfApiDataLoader` (`date` parse with `dayfirst=True`, numeric `nav`, drop invalid rows, sort ascending).
+   - Applied normalization both on cache reads and fresh API fetches before writing cache.
+   - This removes dependence on MFAPI's descending raw order and prevents incorrect `iloc[-1]` valuation results.
+
+3. **Hardened simulator execution invariants** (`mfsim/backtester/simulator.py`):
+   - Normalizes/sorts NAV data for all funds at load time.
+   - Builds a **common trading calendar** across all strategy funds and snaps `start_date` to first common date.
+   - Runs the loop over common trading dates (not fund_list[0] dates).
+   - Makes sells transactional-safe by applying lot tracker operations **before** appending to portfolio history.
+   - Added metric alias support: `"Max Drawdown"` maps to `MaximumDrawdownMetric`.
+   - Added guard for empty `portfolio_history` in `current_portfolio`.
+
+4. **Fixed oversell bug in lot tracking** (`mfsim/backtester/lot_tracker.py`):
+   - `sell()` now validates requested units <= available holdings and raises `ValueError` otherwise.
+   - Prevents silent negative holdings and accounting corruption.
+
+5. **Centralized robust NAV lookup in metrics** (`mfsim/metrics/metrics_collection.py`):
+   - Added `latest_nav_on_or_before()` helper handling both column-based and index-based NAV frames, including unsorted input.
+   - Updated `TotalReturnMetric`, `XIRRMetric`, and `TaxAwareReturnMetric` to use it.
+
+6. **Improved risk metric time-series construction**:
+   - `compute_portfolio_value_history()` now uses trading dates observed in NAV data (plus transaction dates), not calendar-expanded daily series.
+   - Reduces artificial weekend/holiday zero-return distortion in Sharpe/Sortino.
+
+7. **Improved CLI rebalance valuation fallback** (`mfsim/cli.py`):
+   - Rebalancing now uses latest NAV on/before date instead of exact-date-only lookup.
+
+8. **Added focused regression tests**:
+   - `tests/test_data_loader.py`: MFAPI normalization/sort tests (cache + API path).
+   - `tests/test_lot_tracker.py`: oversell raises and does not mutate holdings.
+   - `tests/test_metrics.py`: unsorted NAV valuation tests and helper tests.
+   - `tests/test_simulator.py`: oversell rejection, common-calendar start-date behavior, metric alias support, unsorted-loader sort behavior.
+
+9. **Updated experiment labeling and docs for methodological correctness** (Experiment 002):
+   - Replaced incorrect "out-of-sample" wording with "stress subperiod" where appropriate.
+   - Corrected invested-amount labels in README (`~₹14.0L`, `~₹8.2L`).
+   - Re-ran experiment script and regenerated report/figures.
+
+### Bugs found and fixed
+
+- **Critical**: MFAPI descending NAV order + "on-or-before + iloc[-1]" caused materially wrong end valuation.
+- **Critical**: Oversell allowed negative holdings without error.
+- **High**: Simulator calendar/start-date anchored to first fund could fail/misprice with non-aligned fund histories.
+- **Medium**: `Max Drawdown` metric alias mismatch caused silent "Unknown metric" runs.
+- **Medium**: Period-2 "out-of-sample" language in Exp 002 was methodologically incorrect (Period 2 overlaps Period 1).
+
+### Validation run
+
+- `uv run pytest tests/test_data_loader.py tests/test_lot_tracker.py tests/test_metrics.py tests/test_simulator.py -q`
+  - **68 passed**
+- `uv run pytest -q`
+  - **68 passed**
+- `uv run pytest --cov=mfsim --cov-report=term-missing -q`
+  - **68 passed**, coverage improved from ~43% to **49%**
+- Re-ran:
+  - `uv run python experiments/002_adaptive_factor_rotation/run_experiment.py`
+  - Regenerated `results/REPORT.md` and figure artifacts under `experiments/002_adaptive_factor_rotation/results/figures/`.
+
+### Decisions made
+
+- Kept fixes as **correctness-first** (data invariants + execution invariants + tests) before any reporting/app-layer work.
+- Treated method-label cleanup in experiment docs as part of correctness because it affects interpretation reliability.
+- Did not commit yet; changes remain staged in branch workspace for review.

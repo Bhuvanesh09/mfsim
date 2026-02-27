@@ -126,7 +126,14 @@ class LotTracker:
         if fund_name not in self.lots or not self.lots[fund_name]:
             raise ValueError(f"No lots available to sell for {fund_name}")
 
-        remaining = abs(units)  # units to sell
+        requested_units = abs(units)
+        available_units = self.get_holdings(fund_name)
+        if requested_units > available_units + 1e-10:
+            raise ValueError(
+                f"Cannot sell {requested_units} units of {fund_name}; only {available_units} available"
+            )
+
+        remaining = requested_units  # units to sell
         gains: list[RealizedGain] = []
 
         while remaining > 1e-10 and self.lots[fund_name]:

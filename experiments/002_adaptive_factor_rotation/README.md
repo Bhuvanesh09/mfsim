@@ -46,7 +46,7 @@ Cookies in `download_nse_data.py` expire within a few hours. To re-download:
 | Initial investment | ₹1,00,000 |
 | Monthly SIP | ₹10,000 |
 | Period 1 (sweep) | Mar 2015 → Dec 2025 (~10 years) |
-| Period 2 (stress test) | Feb 2020 → Dec 2025 (~5 years, out-of-sample) |
+| Period 2 (stress test) | Feb 2020 → Dec 2025 (~5 years, stress subperiod) |
 
 **Why Mar 2015?** Starting from Jan 2010 captures the entire post-GFC bull run from
 near-bottom, which artificially amplifies Momentum's advantage. Mar 2015 is a more
@@ -168,29 +168,29 @@ Combines A and B:
 
 ## Results
 
-### Period 1 — Mar 2015 to Dec 2025 (10 years, ₹1.40L invested)
+### Period 1 — Mar 2015 to Dec 2025 (10 years, ~₹14.0L invested)
 
 | Strategy | XIRR | Sharpe | Sortino | Calmar | Max DD | Final Value |
 |---|---|---|---|---|---|---|
-| Nifty 50 (buy & hold) | 12.89% | 0.561 | 0.754 | 0.342 | -37.71% | ₹30.8L |
-| Value 20 only | 14.11% | 0.570 | 0.759 | 0.425 | -33.16% | ₹33.2L |
-| 50/50 Fixed | 15.82% | 0.592 | 0.734 | 0.496 | -31.87% | ₹37.1L |
-| Best B (RS 1m s=0.5) | 15.72% | 0.591 | 0.733 | 0.492 | -31.98% | ₹36.8L |
-| Option C (Dual) | 15.92% | 0.592 | 0.735 | 0.498 | -31.95% | ₹37.2L |
-| **Momentum 30 only** | **17.35%** | **0.619** | **0.774** | **0.530** | -32.75% | ₹40.9L |
-| **Best A (TF ma=100 ro=35%)** | **17.31%** | 0.601 | 0.754 | 0.535 | -32.37% | ₹40.8L |
+| Nifty 50 (buy & hold) | 12.89% | 1.247 | 1.572 | 0.342 | -37.71% | ₹30.8L |
+| Value 20 only | 14.11% | 1.265 | 1.543 | 0.425 | -33.16% | ₹33.2L |
+| 50/50 Fixed | 15.82% | 1.209 | 1.286 | 0.496 | -31.87% | ₹37.1L |
+| Best B (RS 1m s=0.5) | 15.72% | 1.084 | 1.177 | 0.492 | -31.98% | ₹36.8L |
+| Option C (Dual) | 15.92% | 1.087 | 1.179 | 0.498 | -31.95% | ₹37.2L |
+| **Momentum 30 only** | **17.35%** | **1.318** | **1.458** | **0.530** | -32.75% | ₹40.9L |
+| **Best A (TF ma=100 ro=35%)** | **17.31%** | 1.100 | 1.211 | 0.535 | -32.37% | ₹40.8L |
 
-### Period 2 — Feb 2020 to Dec 2025 (5 years, out-of-sample, ₹76L invested)
+### Period 2 — Feb 2020 to Dec 2025 (5 years, stress subperiod, ~₹8.2L invested)
 
 | Strategy | XIRR | Sharpe | Sortino | Calmar | Max DD | Total Return |
 |---|---|---|---|---|---|---|
-| Nifty 50 (buy & hold) | 13.89% | 0.704 | 0.948 | 0.410 | -33.88% | +59.4% |
-| Value 20 only | 14.72% | 0.711 | 0.926 | 0.484 | -30.39% | +63.8% |
-| 50/50 Fixed | 16.28% | 0.711 | 0.880 | 0.614 | -26.49% | +72.6% |
-| Best B (RS 1m s=0.5) | 16.33% | 0.712 | 0.879 | 0.616 | -26.52% | +72.9% |
-| Option C (Dual) | 16.53% | 0.713 | 0.881 | 0.624 | -26.49% | +74.0% |
-| Momentum 30 only | 17.76% | 0.726 | 0.899 | 0.579 | -30.67% | +81.3% |
-| **Best A (TF ma=100 ro=35%)** | **17.74%** | 0.720 | 0.899 | **0.659** | **-26.91%** | **+81.1%** |
+| Nifty 50 (buy & hold) | 13.89% | 1.517 | 1.887 | 0.410 | -33.88% | +59.4% |
+| Value 20 only | 14.72% | 1.531 | 1.817 | 0.484 | -30.39% | +63.8% |
+| 50/50 Fixed | 16.28% | 1.416 | 1.499 | 0.614 | -26.49% | +72.6% |
+| Best B (RS 1m s=0.5) | 16.33% | 1.275 | 1.374 | 0.616 | -26.52% | +72.9% |
+| Option C (Dual) | 16.53% | 1.277 | 1.375 | 0.624 | -26.49% | +74.0% |
+| Momentum 30 only | 17.76% | 1.514 | 1.664 | 0.579 | -30.67% | +81.3% |
+| **Best A (TF ma=100 ro=35%)** | **17.74%** | 1.290 | 1.413 | **0.659** | **-26.91%** | **+81.1%** |
 
 ---
 
@@ -295,7 +295,7 @@ Nifty 50 has Sortino 0.948 in Period 2, higher than all other strategies includi
 - **NSE backtest construction:** The Momentum 30 index was only formally launched in 2016. Values before that are NSE backtested using the same rule-based methodology. Look-ahead bias in index parameter calibration is possible but unlikely given the formula simplicity.
 - **Expense ratio:** Not modelled. Both PR base and direct fund TERs (0.15–0.25% for index funds) affect absolute returns proportionally across all strategies.
 - **No transaction taxes on rebalancing sells:** LTCG/STCG would reduce the rebalancing strategies' advantage in practice.
-- **Short out-of-sample window:** Period 2 is only 5 years. Conclusions should be treated as directional, not statistically robust.
+- **Short stress subperiod:** Period 2 is only 5 years and overlaps Period 1. Conclusions should be treated as directional, not statistically robust.
 - **Sweep A boundary issue:** The best short-window parameter (ro=35%) is at the boundary of the tested range. Testing ro=30%, ro=25% etc. may find higher XIRR at short MA windows, or the optimum may already be at 35%. This has not been tested.
 
 ---

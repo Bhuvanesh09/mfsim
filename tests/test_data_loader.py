@@ -3,10 +3,12 @@
 All tests use the ``MockDataLoader`` from conftest -- no real API calls.
 """
 
+import json
+
 import pandas as pd
 import pytest
 
-from mfsim.utils.data_loader import get_lowerbound_date
+from mfsim.utils.data_loader import MfApiDataLoader, get_lowerbound_date
 
 # ---------------------------------------------------------------------------
 # get_lowerbound_date
@@ -90,3 +92,57 @@ class TestMockDataLoader:
         df_b = mock_loader.load_nav_data("Fund B")
         assert len(df_a) > 0
         assert len(df_b) > 0
+
+
+class TestMfApiDataLoaderNormalization:
+    def _make_loader(self, tmp_path):
+        data_dir = tmp_path / "data"
+        cache_dir = tmp_path / "cache"
+        data_dir.mkdir()
+        cache_dir.mkdir()
+        (data_dir / "mf_list.json").write_text(
+            json.dumps([{"schemeName": "Test Fund", "schemeCode": 12345}])
+        )
+        return MfApiDataLoader(
+            data_dir=str(data_dir),
+            cache_dir=str(cache_dir),
+            cache_ttl_hours=24 * 365,
+        )
+
+    def test_cached_nav_is_returned_sorted_ascending(self, tmp_path):
+        loader = self._make_loader(tmp_path)
+        cache_path = tmp_path / "cache" / "12345.parquet"
+
+        # Descending order in cache (mirrors raw MFAPI ordering).
+        pd.DataFrame(
+            {
+                "date": pd.to_datetime(["2020-01-03", "2020-01-02", "2020-01-01"]),
+                "nav": [12.0, 11.0, 10.0],
+            }
+        ).to_parquet(cache_path, index=False)
+
+        df = loader.load_nav_data("Test Fund")
+        assert df["date"].is_monotonic_increasing
+        assert df["nav"].tolist() == [10.0, 11.0, 12.0]
+
+    def test_api_nav_is_normalized_and_cached_sorted(self, tmp_path, monkeypatch):
+        loader = self._make_loader(tmp_path)
+
+        class _Response:
+            @staticmethod
+            def json():
+                return {
+                    "data": [
+                        {"date": "03-01-2020", "nav": "12"},
+                        {"date": "01-01-2020", "nav": "10"},
+                        {"date": "02-01-2020", "nav": "11"},
+                    ]
+                }
+
+        monkeypatch.setattr("mfsim.utils.data_loader.requests.get", lambda _: _Response())
+        df = loader.load_nav_data("Test Fund")
+        assert df["date"].is_monotonic_increasing
+        assert df["nav"].tolist() == [10.0, 11.0, 12.0]
+
+        cached = pd.read_parquet(tmp_path / "cache" / "12345.parquet")
+        assert pd.to_datetime(cached["date"]).is_monotonic_increasing
