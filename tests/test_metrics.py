@@ -17,6 +17,7 @@ from mfsim.metrics.metrics_collection import (
     TotalReturnMetric,
     XIRRMetric,
     compute_portfolio_value_history,
+    latest_nav_on_or_before,
 )
 
 # ---------------------------------------------------------------------------
@@ -46,6 +47,27 @@ def _make_nav_data(fund_name, dates, navs):
     nav_df = pd.DataFrame({"nav": navs}, index=idx)
     nav_df.index.name = "date"
     return {fund_name: nav_df}
+
+
+class TestLatestNavOnOrBefore:
+    def test_unsorted_index_picks_latest_date(self):
+        nav_df = pd.DataFrame(
+            {"nav": [15.0, 10.0]},
+            index=pd.to_datetime(["2020-12-31", "2020-01-01"]),
+        )
+        nav_df.index.name = "date"
+        nav = latest_nav_on_or_before(nav_df, pd.Timestamp("2020-12-31"))
+        assert nav == pytest.approx(15.0, abs=1e-8)
+
+    def test_unsorted_date_column_picks_latest_date(self):
+        nav_df = pd.DataFrame(
+            {
+                "date": pd.to_datetime(["2020-12-31", "2020-01-01"]),
+                "nav": [15.0, 10.0],
+            }
+        )
+        nav = latest_nav_on_or_before(nav_df, pd.Timestamp("2020-12-31"))
+        assert nav == pytest.approx(15.0, abs=1e-8)
 
 
 # ---------------------------------------------------------------------------
@@ -114,6 +136,22 @@ class TestTotalReturn:
         # Return = (390 / 300) - 1 = 0.30
         assert result == pytest.approx(0.30, abs=0.01)
 
+    def test_uses_latest_nav_when_index_is_unsorted(self):
+        metric = TotalReturnMetric()
+        ph = _make_portfolio_history(
+            [{"date": "2020-01-01", "fund_name": "Fund A", "units": 10.0, "amount": 100.0}]
+        )
+        current_portfolio = {"Fund A": 10.0}
+        end_date = pd.Timestamp("2020-12-31")
+        nav_df = pd.DataFrame(
+            {"nav": [15.0, 10.0]},
+            index=pd.to_datetime(["2020-12-31", "2020-01-01"]),
+        )
+        nav_df.index.name = "date"
+
+        result = metric.calculate(ph, current_portfolio, end_date, {"Fund A": nav_df})
+        assert result == pytest.approx(0.5, abs=0.01)
+
 
 # ---------------------------------------------------------------------------
 # XIRR
@@ -146,6 +184,22 @@ class TestXIRR:
 
         result = metric.calculate(ph, current_portfolio, end_date, nav_data)
         assert result == pytest.approx(0.0, abs=0.05)
+
+    def test_uses_latest_nav_when_index_is_unsorted(self):
+        metric = XIRRMetric()
+        ph = _make_portfolio_history(
+            [{"date": "2020-01-01", "fund_name": "Fund A", "units": 100.0, "amount": 1000.0}]
+        )
+        current_portfolio = {"Fund A": 100.0}
+        end_date = pd.Timestamp("2020-12-31")
+        nav_df = pd.DataFrame(
+            {"nav": [15.0, 10.0]},
+            index=pd.to_datetime(["2020-12-31", "2020-01-01"]),
+        )
+        nav_df.index.name = "date"
+
+        result = metric.calculate(ph, current_portfolio, end_date, {"Fund A": nav_df})
+        assert result > 0
 
     def test_sip_xirr(self):
         """Two investments at different NAVs should produce a reasonable XIRR."""
@@ -204,8 +258,8 @@ class TestComputePortfolioValueHistory:
         )
         nav_data = {"Fund A": nav_df}
         result = compute_portfolio_value_history(ph, nav_data, dates[-1])
-        # date_range with freq="D" from first txn to end
-        expected_len = (dates[-1] - dates[0]).days + 1
+        # Uses trading dates from NAV history (business dates in this fixture).
+        expected_len = len(dates)
         assert len(result) == expected_len
 
     def test_values_reflect_holdings_times_nav(self):

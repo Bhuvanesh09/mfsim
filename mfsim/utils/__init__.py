@@ -2,5 +2,6 @@
 
 from .data_loader import BaseDataLoader, MfApiDataLoader
 from .logger import setup_logger
+from .nse_csv_loader import NseCsvLoader
 
-__all__ = ["BaseDataLoader", "MfApiDataLoader", "setup_logger"]
+__all__ = ["BaseDataLoader", "MfApiDataLoader", "NseCsvLoader", "setup_logger"]

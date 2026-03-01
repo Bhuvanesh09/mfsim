@@ -1,0 +1,9 @@
+# Dynamic rotation between Value and Momentum funds.
+# Every 6 months: compare trailing 6-month returns, shift 10% toward the winner.
+# Uses the built-in MomentumValueStrategy.
+type: "momentum_value"
+frequency: "semi-annually"
+
+value_fund: "Nippon India Nifty 50 Value 20 Index Fund - Direct Plan - Growth Option"
+momentum_fund: "UTI Nifty 200 Momentum 30 Index Fund - Direct Plan - Growth Option"
+momentum_period: 180

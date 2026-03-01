@@ -97,6 +97,43 @@ def make_nav_df(start_date, num_days, start_nav=100.0, daily_return=0.0003):
     return df
 
 
+def make_nav_df_with_crash(
+    start_date, num_days, crash_day, crash_pct,
+    start_nav=100.0, daily_return=0.0003,
+):
+    """Generate NAV data with a sudden crash on a specific day.
+
+    Parameters
+    ----------
+    start_date : str
+        Start date, e.g. ``"2020-01-01"``.
+    num_days : int
+        Number of business days to generate.
+    crash_day : int
+        0-indexed business day on which the crash occurs.
+    crash_pct : float
+        Drop as a fraction, e.g. ``0.30`` means a 30% crash.
+    start_nav : float
+        NAV on the first day.
+    daily_return : float
+        Constant daily return on non-crash days.
+    """
+    dates = pd.bdate_range(start=start_date, periods=num_days)
+    navs = [start_nav]
+    for i in range(1, num_days):
+        if i == crash_day:
+            navs.append(navs[-1] * (1 - crash_pct))
+        else:
+            navs.append(navs[-1] * (1 + daily_return))
+    df = pd.DataFrame(
+        {
+            "date": [d.strftime("%d-%m-%Y") for d in dates],
+            "nav": navs,
+        }
+    )
+    return df
+
+
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------

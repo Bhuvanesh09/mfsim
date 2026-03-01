@@ -1,0 +1,25 @@
+# @package _global_
+# Experiment 001 — Momentum/Value rotation study: Dynamic semi-annual rotation
+# Every 6 months, shifts 10% of holdings toward the better-performing fund.
+
+defaults:
+  - override /strategy: momentum_value_rotation
+  - override /data_loader: mfapi
+
+simulation:
+  start_date: "2021-04-01"
+  end_date: "2025-12-31"
+  initial_investment: 100000
+  sip_amount: 10000
+  sip_frequency: "monthly"
+  benchmark_fund: null
+
+sip_stepup:
+  enabled: false
+
+metrics:
+  - "Total Return"
+  - "XIRR"
+  - "Maximum Drawdown"
+  - "Sharpe Ratio"
+  - "Sortino Ratio"

@@ -1,0 +1,10 @@
+# Buy-and-hold Nifty 200 Momentum 30 Index Fund (UTI, Direct Growth).
+# Pure momentum factor exposure — no rebalancing.
+type: "fixed_allocation"
+frequency: "monthly"
+
+fund_list:
+  - "UTI Nifty 200 Momentum 30 Index Fund - Direct Plan - Growth Option"
+
+allocation:
+  "UTI Nifty 200 Momentum 30 Index Fund - Direct Plan - Growth Option": 1.0

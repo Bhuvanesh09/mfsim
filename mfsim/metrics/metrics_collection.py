@@ -23,10 +23,41 @@ from scipy.optimize import newton
 from .base_metric import BaseMetric
 
 
+def latest_nav_on_or_before(nav_df, date):
+    """Return latest NAV at or before `date` for index-based or column-based NAV tables."""
+    if "date" in nav_df.columns:
+        df = nav_df.copy()
+        if "nav" not in df.columns:
+            raise ValueError("NAV data must contain a 'nav' column")
+        df["date"] = pd.to_datetime(df["date"], errors="coerce", dayfirst=True)
+        df["nav"] = pd.to_numeric(df["nav"], errors="coerce")
+        df = df.dropna(subset=["date", "nav"])
+        eligible = df.loc[df["date"] <= date]
+        if eligible.empty:
+            return None
+        latest_idx = eligible["date"].idxmax()
+        return float(eligible.loc[latest_idx, "nav"])
+
+    if "nav" not in nav_df.columns:
+        raise ValueError("NAV data must contain a 'nav' column")
+    if not isinstance(nav_df.index, pd.DatetimeIndex):
+        raise ValueError("NAV data must have a DatetimeIndex or a 'date' column")
+
+    nav_series = pd.to_numeric(nav_df["nav"], errors="coerce")
+    eligible = nav_series[(nav_series.index <= date) & nav_series.notna()]
+    if eligible.empty:
+        return None
+    latest_date = eligible.index.max()
+    latest_value = eligible.loc[latest_date]
+    if isinstance(latest_value, pd.Series):
+        latest_value = latest_value.iloc[-1]
+    return float(latest_value)
+
+
 def compute_portfolio_value_history(portfolio_history, nav_data, current_date):
     """Reconstruct daily portfolio value from transaction history and NAV data.
 
-    For each calendar day from the first transaction to ``current_date``,
+    For each trading date observed in the NAV data up to ``current_date``,
     computes the total portfolio value by multiplying each fund's
     cumulative units held by its NAV on that day.
 
@@ -40,8 +71,20 @@ def compute_portfolio_value_history(portfolio_history, nav_data, current_date):
         pandas Series indexed by date with portfolio value as values.
     """
     portfolio_history = portfolio_history.sort_values("date")
-
-    all_dates = pd.date_range(start=portfolio_history.index.min(), end=current_date, freq="D")
+    all_dates = pd.DatetimeIndex([])
+    for nav_df in nav_data.values():
+        if "date" in nav_df.columns:
+            fund_dates = pd.to_datetime(nav_df["date"], errors="coerce", dayfirst=True)
+            fund_dates = pd.DatetimeIndex(fund_dates.dropna())
+        elif isinstance(nav_df.index, pd.DatetimeIndex):
+            fund_dates = nav_df.index
+        else:
+            continue
+        fund_dates = fund_dates[
+            (fund_dates >= portfolio_history.index.min()) & (fund_dates <= current_date)
+        ]
+        all_dates = all_dates.union(fund_dates)
+    all_dates = all_dates.union(pd.DatetimeIndex(portfolio_history.index)).sort_values()
 
     holdings_df = pd.DataFrame(index=all_dates, columns=nav_data.keys()).fillna(0.0)
 
@@ -54,10 +97,17 @@ def compute_portfolio_value_history(portfolio_history, nav_data, current_date):
 
     portfolio_values = pd.Series(0.0, index=all_dates, dtype=float)
     for fund, nav_df in nav_data.items():
-        nav_df = nav_df[nav_df.index <= current_date]
-        # Reindex to all calendar days and forward-fill so weekends/holidays
-        # carry the last known NAV instead of producing NaN/zero.
-        nav_aligned = nav_df["nav"].reindex(all_dates).ffill()
+        if "date" in nav_df.columns:
+            nav_index = pd.to_datetime(nav_df["date"], errors="coerce", dayfirst=True)
+            nav_values = pd.to_numeric(nav_df["nav"], errors="coerce")
+            nav_series = pd.Series(nav_values.values, index=nav_index)
+        else:
+            nav_series = pd.to_numeric(nav_df["nav"], errors="coerce")
+            nav_series.index = pd.to_datetime(nav_series.index, errors="coerce")
+        nav_series = nav_series[nav_series.index.notna()]
+        nav_series = nav_series[nav_series.index <= current_date].sort_index()
+        # Reindex to trading dates and forward-fill for funds with sparse calendars.
+        nav_aligned = nav_series.reindex(all_dates).ffill().fillna(0.0)
         holdings = holdings_df[fund]
         portfolio_values += holdings * nav_aligned
 
@@ -110,18 +160,13 @@ class XIRRMetric(BaseMetric):
                 dates.append(idx)
             cash_flows.append(-row["amount"])
 
-        # Final portfolio value as a positive cash flow on the end date
+        # Final portfolio value as a positive cash flow on the end date.
+        # Use last available NAV on or before `date` so holidays don't zero out the value.
         final_value = 0
         for fund, units in current_portfolio.items():
-            nav = nav_data[fund]
-            if "date" in nav.columns:
-                nav_on_date = nav.loc[nav["date"] == date, "nav"]
-            elif nav.index.name == "date":
-                nav_on_date = nav.loc[[date], "nav"] if date in nav.index else pd.Series([])
-            else:
-                nav_on_date = pd.Series([])
-            if not nav_on_date.empty:
-                final_value += units * nav_on_date.values[0]
+            nav = latest_nav_on_or_before(nav_data[fund], date)
+            if nav is not None:
+                final_value += units * nav
         if final_value != 0:
             cash_flows.append(final_value)
             dates.append(date)
@@ -168,19 +213,12 @@ class TotalReturnMetric(BaseMetric):
             Total return as a decimal (e.g., ``0.45`` for 45% return).
         """
         money_invested = portfolio_history["amount"].sum()
+        # Use last available NAV on or before `date` so holidays don't zero out the value.
         final_value = 0
         for fund, units in current_portfolio.items():
-            nav_df = nav_data[fund]
-            if "date" in nav_df.columns:
-                nav_on_date = nav_df.loc[nav_df["date"] == date, "nav"]
-            elif nav_df.index.name == "date":
-                nav_on_date = nav_df.loc[[date], "nav"] if date in nav_df.index else pd.Series([])
-            else:
-                raise ValueError(
-                    f"Invalid NAV data format for fund {fund}. Expected 'date' as column or index."
-                )
-            if not nav_on_date.empty:
-                final_value += units * nav_on_date.values[0]
+            nav = latest_nav_on_or_before(nav_data[fund], date)
+            if nav is not None:
+                final_value += units * nav
         total_return = (final_value / money_invested) - 1
         return float(total_return)
 
@@ -557,14 +595,15 @@ class TaxAwareReturnMetric(BaseMetric):
             Post-tax total return as a decimal (e.g., ``0.35`` for 35%).
             Returns ``float('nan')`` if total invested is zero.
         """
-        total_invested = portfolio_history["amount"].sum()
+        # Net invested = gross buys minus rebalancing sells (correct denominator)
+        total_invested = portfolio_history[portfolio_history["amount"] > 0]["amount"].sum()
 
-        # 1. Calculate final portfolio value (pre-tax)
+        # 1. Calculate final portfolio value (pre-tax), using last available NAV
         final_value = 0.0
         for fund, units in current_portfolio.items():
-            nav_df = nav_data[fund]
-            if date in nav_df.index:
-                final_value += units * nav_df.loc[date, "nav"]
+            nav = latest_nav_on_or_before(nav_data[fund], date)
+            if nav is not None:
+                final_value += units * nav
 
         # 2. Calculate tax on realized gains
         realized_tax = self._compute_realized_tax(date)
@@ -581,30 +620,53 @@ class TaxAwareReturnMetric(BaseMetric):
         return float((post_tax_value / total_invested) - 1)
 
     def _compute_realized_tax(self, end_date):
-        """Compute tax on all realized gains.
+        """Compute tax on all realized gains, applying the LTCG exemption per financial year.
+
+        Indian tax rules:
+        - LTCG and LTCL are netted per financial year; the ₹1.25L exemption
+          applies to the net LTCG in each FY.
+        - STCL offsets STCG first, then any remaining STCL offsets LTCG.
+        - Losses cannot be carried forward in this simplified model.
 
         Args:
-            end_date: Simulation end date (unused, reserved for future
-                multi-year exemption logic).
+            end_date: Simulation end date (unused here; exemption is applied
+                per financial year of the sell date).
 
         Returns:
-            Total tax liability on realized gains.
+            Total tax liability on realized gains across all financial years.
         """
-        ltcg_total = 0.0
-        stcg_total = 0.0
+        # Bucket gains/losses by Indian financial year (Apr–Mar)
+        # fy_key: the year in which the FY starts (e.g. 2023 for FY 2023-24)
+        fy_ltcg: dict[int, float] = {}
+        fy_stcg: dict[int, float] = {}
 
-        for gain in self.lot_tracker.realized_gains:
-            if gain.gain <= 0:
-                continue  # No tax on losses (simplified)
-            if gain.holding_days > self.LTCG_HOLDING_DAYS:
-                ltcg_total += gain.gain
+        for rg in self.lot_tracker.realized_gains:
+            sell_date = rg.sell_date
+            fy = sell_date.year if sell_date.month >= 4 else sell_date.year - 1
+            if rg.holding_days > self.LTCG_HOLDING_DAYS:
+                fy_ltcg[fy] = fy_ltcg.get(fy, 0.0) + rg.gain
             else:
-                stcg_total += gain.gain
+                fy_stcg[fy] = fy_stcg.get(fy, 0.0) + rg.gain
 
-        # Apply LTCG exemption
-        ltcg_taxable = max(0, ltcg_total - self.LTCG_EXEMPTION)
+        total_tax = 0.0
+        all_fys = set(fy_ltcg) | set(fy_stcg)
+        for fy in all_fys:
+            ltcg = fy_ltcg.get(fy, 0.0)
+            stcg = fy_stcg.get(fy, 0.0)
 
-        return ltcg_taxable * self.LTCG_RATE + stcg_total * self.STCG_RATE
+            # STCL offsets STCG first, then any remaining STCL offsets LTCG
+            if stcg < 0:
+                ltcg += stcg  # STCL reduces LTCG
+                stcg = 0.0
+
+            # LTCL offsets LTCG within the same FY
+            # (negative ltcg means net loss — no tax, no carryforward here)
+            ltcg_taxable = max(0.0, ltcg - self.LTCG_EXEMPTION)
+            stcg_taxable = max(0.0, stcg)
+
+            total_tax += ltcg_taxable * self.LTCG_RATE + stcg_taxable * self.STCG_RATE
+
+        return total_tax
 
     def _compute_unrealized_tax(self, end_date, nav_data):
         """Compute tax on unrealized gains (if portfolio were liquidated at end_date).
@@ -616,23 +678,28 @@ class TaxAwareReturnMetric(BaseMetric):
         Returns:
             Total tax liability on unrealized gains.
         """
+        # All unrealized lots are hypothetically sold in the same FY at end_date,
+        # so gains and losses net within that single liquidation event.
         ltcg_total = 0.0
         stcg_total = 0.0
 
         for lot in self.lots_at_end:
             fund = lot.fund_name
-            if end_date not in nav_data[fund].index:
+            current_nav = latest_nav_on_or_before(nav_data[fund], end_date)
+            if current_nav is None:
                 continue
-            current_nav = nav_data[fund].loc[end_date, "nav"]
             gain = (current_nav - lot.cost_per_unit) * lot.units
-            if gain <= 0:
-                continue
 
             holding_days = (end_date - lot.purchase_date).days
             if holding_days > self.LTCG_HOLDING_DAYS:
-                ltcg_total += gain
+                ltcg_total += gain  # includes losses (negative)
             else:
                 stcg_total += gain
 
-        ltcg_taxable = max(0, ltcg_total - self.LTCG_EXEMPTION)
-        return ltcg_taxable * self.LTCG_RATE + stcg_total * self.STCG_RATE
+        # STCL offsets STCG first, then remaining STCL offsets LTCG
+        if stcg_total < 0:
+            ltcg_total += stcg_total
+            stcg_total = 0.0
+
+        ltcg_taxable = max(0.0, ltcg_total - self.LTCG_EXEMPTION)
+        return ltcg_taxable * self.LTCG_RATE + max(0.0, stcg_total) * self.STCG_RATE

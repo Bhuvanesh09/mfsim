@@ -9,6 +9,8 @@ import pandas as pd
 import pytest
 
 from mfsim.backtester.simulator import Simulator
+from mfsim.strategies.base_strategy import BaseStrategy
+from mfsim.utils.data_loader import BaseDataLoader
 
 # ---------------------------------------------------------------------------
 # Basic simulation
@@ -245,3 +247,128 @@ class TestStartDateSnapping:
         )
         sim.run()
         assert sim.start_date == pd.Timestamp("2020-01-06")
+
+
+class TestCorrectnessGuards:
+    def test_oversell_is_rejected(self, mock_loader):
+        class OversellStrategy(BaseStrategy):
+            def __init__(self):
+                super().__init__("monthly", ["Total Return"], ["Fund A"])
+                self.sent_order = False
+
+            def allocate_money(self, money_invested, nav_data, current_date):
+                return {"Fund A": money_invested}
+
+            def rebalance(self, portfolio, nav_data, current_date):
+                if not self.sent_order:
+                    self.sent_order = True
+                    return [{"fund_name": "Fund A", "amount": -200000.0}]
+                return []
+
+        sim = Simulator(
+            start_date="2020-01-02",
+            end_date="2020-01-31",
+            initial_investment=100000,
+            strategy=OversellStrategy(),
+            sip_amount=0,
+            data_loader=mock_loader,
+        )
+        with pytest.raises(ValueError, match="Cannot sell"):
+            sim.run()
+
+    def test_start_date_uses_common_calendar_across_funds(self):
+        class MisalignedLoader(BaseDataLoader):
+            def __init__(self):
+                self.nav = {
+                    "Fund A": pd.DataFrame(
+                        {
+                            "date": pd.bdate_range("2020-01-01", "2020-01-10"),
+                            "nav": [100.0] * 8,
+                        }
+                    ),
+                    "Fund B": pd.DataFrame(
+                        {
+                            "date": pd.bdate_range("2020-01-06", "2020-01-10"),
+                            "nav": [50.0] * 5,
+                        }
+                    ),
+                }
+
+            def load_nav_data(self, fund_name):
+                return self.nav[fund_name].copy()
+
+        class TwoFundHold(BaseStrategy):
+            def __init__(self):
+                super().__init__("monthly", ["Total Return"], ["Fund A", "Fund B"])
+
+            def allocate_money(self, money_invested, nav_data, current_date):
+                return {"Fund A": money_invested / 2, "Fund B": money_invested / 2}
+
+            def rebalance(self, portfolio, nav_data, current_date):
+                return []
+
+        sim = Simulator(
+            start_date="2020-01-01",
+            end_date="2020-01-10",
+            initial_investment=100000,
+            strategy=TwoFundHold(),
+            sip_amount=0,
+            data_loader=MisalignedLoader(),
+        )
+        assert sim.start_date == pd.Timestamp("2020-01-06")
+        sim.run()
+        assert min(txn["date"] for txn in sim.get_portfolio_history()) >= pd.Timestamp("2020-01-06")
+
+    def test_metric_alias_max_drawdown_is_supported(self, mock_loader):
+        class AliasMetricStrategy(BaseStrategy):
+            def __init__(self):
+                super().__init__("annually", ["Total Return", "Max Drawdown"], ["Fund A"])
+
+            def allocate_money(self, money_invested, nav_data, current_date):
+                return {"Fund A": money_invested}
+
+            def rebalance(self, portfolio, nav_data, current_date):
+                return []
+
+        sim = Simulator(
+            start_date="2020-01-02",
+            end_date="2020-12-31",
+            initial_investment=100000,
+            strategy=AliasMetricStrategy(),
+            sip_amount=0,
+            data_loader=mock_loader,
+        )
+        results = sim.run()
+        assert "MaximumDrawdown" in results
+
+    def test_unsorted_loader_nav_data_is_sorted_by_simulator(self):
+        class DescendingLoader(BaseDataLoader):
+            def load_nav_data(self, fund_name):
+                return pd.DataFrame(
+                    {
+                        "date": pd.to_datetime(["2020-01-03", "2020-01-02", "2020-01-01"]),
+                        "nav": [102.0, 101.0, 100.0],
+                    }
+                )
+
+        class OneFundHold(BaseStrategy):
+            def __init__(self):
+                super().__init__("annually", ["Total Return"], ["Fund A"])
+
+            def allocate_money(self, money_invested, nav_data, current_date):
+                return {"Fund A": money_invested}
+
+            def rebalance(self, portfolio, nav_data, current_date):
+                return []
+
+        sim = Simulator(
+            start_date="2020-01-01",
+            end_date="2020-01-03",
+            initial_investment=100000,
+            strategy=OneFundHold(),
+            sip_amount=0,
+            data_loader=DescendingLoader(),
+        )
+        sim.run()
+        assert sim.nav_data["Fund A"].index.is_monotonic_increasing
+        assert sim.get_portfolio_value(pd.Timestamp("2020-01-03")) > 100000

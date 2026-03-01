@@ -29,8 +29,8 @@ Example — a fixed-allocation strategy::
             return []
 """
 
-from abc import ABC, abstractmethod
 import logging
+from abc import ABC, abstractmethod
 
 
 class BaseStrategy(ABC):
@@ -161,3 +161,21 @@ class BaseStrategy(ABC):
                 return current_sip_amount
         """
         return current_sip_amount
+
+    def should_rebalance(self, portfolio, nav_data, current_date):
+        """Check whether an out-of-schedule (trigger-based) rebalance is needed.
+
+        Called by the simulator on every trading day that is **not** already a
+        scheduled rebalance date.  The default implementation returns ``False``
+        (time-based rebalancing only).  Override in adaptive strategies to
+        enable signal-driven triggers.
+
+        Args:
+            portfolio: Current holdings as ``{fund_name: total_units}``.
+            nav_data: Dict mapping fund names to date-indexed NAV DataFrames.
+            current_date: The current simulation date.
+
+        Returns:
+            ``True`` if the strategy wants to rebalance today, ``False`` otherwise.
+        """
+        return False

@@ -1,0 +1,12 @@
+# 50/50 split between Nifty 50 Value 20 and Nifty 200 Momentum 30.
+# Fixed allocation — SIP invested equally each month, no rebalancing.
+type: "fixed_allocation"
+frequency: "monthly"
+
+fund_list:
+  - "Nippon India Nifty 50 Value 20 Index Fund - Direct Plan - Growth Option"
+  - "UTI Nifty 200 Momentum 30 Index Fund - Direct Plan - Growth Option"
+
+allocation:
+  "Nippon India Nifty 50 Value 20 Index Fund - Direct Plan - Growth Option": 0.5
+  "UTI Nifty 200 Momentum 30 Index Fund - Direct Plan - Growth Option": 0.5

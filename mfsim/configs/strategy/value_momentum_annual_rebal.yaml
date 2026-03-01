@@ -1,0 +1,12 @@
+# 50/50 split between Nifty 50 Value 20 and Nifty 200 Momentum 30.
+# Rebalanced annually back to 50/50. Tests whether discipline adds value.
+type: "rebalancing"
+frequency: "annually"
+
+fund_list:
+  - "Nippon India Nifty 50 Value 20 Index Fund - Direct Plan - Growth Option"
+  - "UTI Nifty 200 Momentum 30 Index Fund - Direct Plan - Growth Option"
+
+allocation:
+  "Nippon India Nifty 50 Value 20 Index Fund - Direct Plan - Growth Option": 0.5
+  "UTI Nifty 200 Momentum 30 Index Fund - Direct Plan - Growth Option": 0.5

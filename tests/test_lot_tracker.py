@@ -112,6 +112,16 @@ class TestLotTrackerSell:
         with pytest.raises(ValueError, match="No lots available"):
             tracker.sell("Fund B", datetime(2023, 6, 1), 50.0, 12.0)
 
+    def test_oversell_raises_without_mutating_lots(self):
+        tracker = LotTracker()
+        tracker.buy("Fund A", datetime(2023, 1, 1), 100.0, 10.0)
+
+        with pytest.raises(ValueError, match="Cannot sell"):
+            tracker.sell("Fund A", datetime(2023, 6, 1), 120.0, 12.0)
+
+        assert tracker.get_holdings("Fund A") == pytest.approx(100.0, abs=1e-8)
+        assert len(tracker.realized_gains) == 0
+
     def test_realized_gains_accumulate(self):
         tracker = LotTracker()
         tracker.buy("Fund A", datetime(2023, 1, 1), 100.0, 10.0)

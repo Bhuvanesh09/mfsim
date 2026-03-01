@@ -46,7 +46,7 @@ from mfsim.metrics.metrics_collection import (
     XIRRMetric,
 )
 from mfsim.strategies.base_strategy import BaseStrategy
-from mfsim.utils.data_loader import MfApiDataLoader, get_lowerbound_date
+from mfsim.utils.data_loader import MfApiDataLoader
 from mfsim.utils.logger import setup_logger
 
 
@@ -119,22 +119,41 @@ class Simulator:
             self.data_loader = data_loader
         self.fund_list = self.strategy.fund_list
         self.nav_data = self._load_all_nav_data()
+        self.common_trading_dates = self._build_common_trading_dates()
+        self.start_date = self._get_common_start_date(self.start_date)
+        if pd.isna(self.start_date):
+            raise ValueError(
+                f"No common trading date on or after {start_date} across funds: {self.fund_list}"
+            )
+        self.trading_dates = self.common_trading_dates[
+            (self.common_trading_dates >= self.start_date)
+            & (self.common_trading_dates <= self.end_date)
+        ]
+        if self.trading_dates.empty:
+            raise ValueError(
+                f"No common trading dates between {self.start_date.date()} and {self.end_date.date()} "
+                f"across funds: {self.fund_list}"
+            )
         self.expense_ratios = self._load_expense_ratios()
         self.exit_loads = self._get_exit_load()
-        self.start_date = get_lowerbound_date(self.nav_data[self.fund_list[0]], self.start_date)
         self.portfolio_history = []
         self.metrics_results = {}
         self.lot_tracker = LotTracker()
         self.total_stamp_duty = 0.0
+        self.rebalance_log = []
         self._last_sip_period = None
         self._last_rebalance_period = None
 
         # Load benchmark NAV data if specified and not already in nav_data
         if self.benchmark_fund and self.benchmark_fund not in self.nav_data:
             benchmark_nav = self.data_loader.load_nav_data(self.benchmark_fund)
-            benchmark_nav["date"] = pd.to_datetime(benchmark_nav["date"], format="%d-%m-%Y")
-            benchmark_nav["nav"] = benchmark_nav["nav"].astype(float)
+            benchmark_nav["date"] = pd.to_datetime(
+                benchmark_nav["date"], errors="coerce", dayfirst=True
+            )
+            benchmark_nav["nav"] = pd.to_numeric(benchmark_nav["nav"], errors="coerce")
+            benchmark_nav = benchmark_nav.dropna(subset=["date", "nav"])
             benchmark_nav.set_index("date", inplace=True)
+            benchmark_nav = benchmark_nav.sort_index()
             self.nav_data[self.benchmark_fund] = benchmark_nav
 
     @property
@@ -147,6 +166,8 @@ class Simulator:
         Returns:
             Dict mapping each fund name to total units currently held.
         """
+        if not self.portfolio_history:
+            return {}
         df = pd.DataFrame.from_records(self.portfolio_history, index="date")
         df = df.drop(columns=["amount"])
         return df.groupby("fund_name")["units"].sum().to_dict()
@@ -217,13 +238,12 @@ class Simulator:
         current_portfolio = self.current_portfolio
 
         for fund_name, units in current_portfolio.items():
-            try:
-                nav = self.nav_data[fund_name].loc[date]["nav"]
-                fund_value = units * nav
-                total_value += fund_value
-            except KeyError:
-                self.logger.warning(f"NAV data not available for {fund_name} on {date}")
+            nav_on_or_before = self.nav_data[fund_name][self.nav_data[fund_name].index <= date]
+            if nav_on_or_before.empty:
+                self.logger.warning(f"NAV data not available for {fund_name} on or before {date}")
                 continue
+            nav = float(nav_on_or_before.sort_index()["nav"].iloc[-1])
+            total_value += units * nav
 
         return total_value
 
@@ -276,11 +296,31 @@ class Simulator:
         """
         nav_data = {}
         for fund in self.fund_list:
-            nav_data[fund] = self.data_loader.load_nav_data(fund)
-            nav_data[fund]["date"] = pd.to_datetime(nav_data[fund]["date"], format="%d-%m-%Y")
-            nav_data[fund]["nav"] = nav_data[fund]["nav"].astype(float)
-            nav_data[fund].set_index("date", inplace=True)
+            nav_df = self.data_loader.load_nav_data(fund).copy()
+            if "date" not in nav_df.columns or "nav" not in nav_df.columns:
+                raise ValueError(f"NAV data for {fund} must contain 'date' and 'nav' columns")
+            nav_df["date"] = pd.to_datetime(nav_df["date"], errors="coerce", dayfirst=True)
+            nav_df["nav"] = pd.to_numeric(nav_df["nav"], errors="coerce")
+            nav_df = nav_df.dropna(subset=["date", "nav"])
+            nav_df = nav_df.sort_values("date")
+            nav_df.set_index("date", inplace=True)
+            nav_data[fund] = nav_df.sort_index()
         return nav_data
+
+    def _build_common_trading_dates(self):
+        """Return sorted dates where all strategy funds have NAV data."""
+        common_dates = None
+        for fund in self.fund_list:
+            fund_dates = self.nav_data[fund].index
+            common_dates = fund_dates if common_dates is None else common_dates.intersection(fund_dates)
+        return common_dates.sort_values()
+
+    def _get_common_start_date(self, target_date):
+        """Snap start date to the first date available across all strategy funds."""
+        eligible = self.common_trading_dates[self.common_trading_dates >= target_date]
+        if eligible.empty:
+            return pd.NaT
+        return eligible.min()
 
     def calculate_units_for_amount(self, fund_name, date, amount):
         """Convert a rupee amount to fund units at the NAV on a given date.
@@ -330,6 +370,12 @@ class Simulator:
         units = self.calculate_units_for_amount(fund_name, date, amount)
         nav = self.nav_data[fund_name].loc[date]["nav"]
 
+        # Track in lot system first so failed sells do not corrupt transaction history.
+        if amount > 0:
+            self.lot_tracker.buy(fund_name, date, units, float(nav))
+        elif amount < 0:
+            self.lot_tracker.sell(fund_name, date, abs(units), float(nav))
+
         self.portfolio_history.append(
             {
                 "fund_name": fund_name,
@@ -338,12 +384,6 @@ class Simulator:
                 "amount": amount,
             }
         )
-
-        # Track in lot system
-        if amount > 0:
-            self.lot_tracker.buy(fund_name, date, units, float(nav))
-        elif amount < 0:
-            self.lot_tracker.sell(fund_name, date, abs(units), float(nav))
 
         if stamp_duty > 0:
             self.logger.debug(f"Stamp duty of {stamp_duty:.2f} applied on {date.date()}")
@@ -396,12 +436,7 @@ class Simulator:
             Example: ``{"TotalReturn": 0.45, "XIRR": 0.12}``
         """
         self._initialize_portfolio()
-
-        all_dates = pd.date_range(start=self.start_date, end=self.end_date, freq="D")
-
-        for date in all_dates:
-            if date not in self.nav_data[self.fund_list[0]].index:
-                continue
+        for date in self.trading_dates:
 
             # Let the strategy update the SIP amount if applicable
             if self.sip_amount > 0:
@@ -412,9 +447,15 @@ class Simulator:
                 if self._is_sip_date(date):
                     self._apply_sip(date)
 
-            # Rebalance if needed
-            if self._is_rebalance_date(date):
-                self.logger.info(f"Rebalancing on {date.date()}")
+            # Rebalance if needed (scheduled or trigger-based)
+            is_scheduled = self._is_rebalance_date(date)
+            is_triggered = (not is_scheduled) and self.strategy.should_rebalance(
+                self.current_portfolio, self.nav_data, date
+            )
+            if is_scheduled or is_triggered:
+                rebal_type = "scheduled" if is_scheduled else "triggered"
+                self.logger.info(f"Rebalancing on {date.date()} ({rebal_type})")
+                self.rebalance_log.append({"date": date, "type": rebal_type})
                 current_portfolio = self.current_portfolio
                 orders = self.strategy.rebalance(current_portfolio, self.nav_data, date)
                 for order in orders:
@@ -542,29 +583,30 @@ class Simulator:
         """
         metrics_instances = []
         for metric_name in self.strategy.metrics:
-            if metric_name.lower() == "total return":
+            metric_key = " ".join(metric_name.lower().split())
+            if metric_key == "total return":
                 metrics_instances.append(TotalReturnMetric())
-            elif metric_name.lower() == "sharpe ratio":
+            elif metric_key == "sharpe ratio":
                 metrics_instances.append(SharpeRatioMetric(frequency="daily"))
-            elif metric_name.lower() == "maximum drawdown":
+            elif metric_key in {"maximum drawdown", "max drawdown"}:
                 metrics_instances.append(MaximumDrawdownMetric())
-            elif metric_name.lower() == "sortino ratio":
-                metrics_instances.append(SortinoRatioMetric(frequency=self.strategy.frequency))
-            elif metric_name.lower() == "xirr":
+            elif metric_key == "sortino ratio":
+                metrics_instances.append(SortinoRatioMetric(frequency="daily"))
+            elif metric_key == "xirr":
                 metrics_instances.append(XIRRMetric())
-            elif metric_name.lower() == "alpha":
+            elif metric_key == "alpha":
                 if self.benchmark_fund:
                     metrics_instances.append(AlphaMetric(benchmark_fund=self.benchmark_fund))
                 else:
                     self.logger.warning("Alpha metric requires benchmark_fund parameter")
-            elif metric_name.lower() == "tracking error":
+            elif metric_key == "tracking error":
                 if self.benchmark_fund:
                     metrics_instances.append(
                         TrackingErrorMetric(benchmark_fund=self.benchmark_fund)
                     )
                 else:
                     self.logger.warning("Tracking Error metric requires benchmark_fund parameter")
-            elif metric_name.lower() == "information ratio":
+            elif metric_key == "information ratio":
                 if self.benchmark_fund:
                     metrics_instances.append(
                         InformationRatioMetric(benchmark_fund=self.benchmark_fund)
@@ -573,7 +615,7 @@ class Simulator:
                     self.logger.warning(
                         "Information Ratio metric requires benchmark_fund parameter"
                     )
-            elif metric_name.lower() == "tax-aware return":
+            elif metric_key == "tax-aware return":
                 metrics_instances.append(
                     TaxAwareReturnMetric(
                         lot_tracker=self.lot_tracker,

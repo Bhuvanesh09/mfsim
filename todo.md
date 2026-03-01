@@ -8,7 +8,7 @@
 
 - [x] **Fix broken metrics** — `MaximumDrawdownMetric` and `SortinoRatioMetric` reference a `portfolio_history["total"]` column that doesn't exist. Both now reconstruct daily portfolio value from transaction history and NAV data. *(Fixed in 2ce8144)*
 
-- [ ] **Handle non-trading-day rebalance dates** — When a rebalance date (1st of month, Monday, etc.) falls on a market holiday, defer to the next available trading day instead of silently skipping.
+- [~] **Handle non-trading-day rebalance dates** — When a rebalance date (1st of month, Monday, etc.) falls on a market holiday, defer to the next available trading day instead of silently skipping. *Partial: end-date NAV valuation in XIRRMetric, TotalReturnMetric, and get_portfolio_value() now uses "last available ≤ date" (fixed in Experiment 002). Rebalance deferral itself still not implemented.*
 
 ## P1 — Core Features (needed for real-world usefulness)
 
@@ -24,13 +24,13 @@
 
 ## P2 — User Experience (needed for public release)
 
-- [ ] **Visualization module** — Equity curve, drawdown chart, allocation pie over time, strategy comparison plots. Use matplotlib. People judge backtesting tools by their charts.
+- [~] **Visualization module** — Equity curve, drawdown chart, allocation pie over time, strategy comparison plots. Use matplotlib. People judge backtesting tools by their charts. *Partial: Experiment 002 produces 6 figures (sweep heatmap, grid, final comparison bars, portfolio value history, rolling Sharpe, period comparison). Not yet a reusable library module.*
 
 - [x] **CLI interface** — Hydra-based CLI via `uv run mfsim-backtest`. Supports strategy/experiment selection, param overrides, and `--multirun` sweeps. Entry point: `mfsim.cli:main`. *(Done in 005d00e)*
 
 - [ ] **Structured result output** — Return a `SimulationResult` dataclass instead of a raw dict. Include: metrics, portfolio history, final holdings, benchmark comparison, total invested, final value.
 
-- [~] **Multiple data source support** — Hydra data_loader configs support `mfapi` (live API) and `index_csv` (local NSE CSVs). Still need: AMFI direct download, BSE Star MF, data source failover.
+- [~] **Multiple data source support** — Hydra data_loader configs support `mfapi` (live API) and `index_csv` (local NSE CSVs). `NseCsvLoader` added in `mfsim/utils/nse_csv_loader.py` for niftyindices.com PR/TRI CSV files (used in Experiment 002). Still need: AMFI direct download, BSE Star MF, data source failover.
 
 - [ ] **Better error messages** — When a fund name doesn't match any scheme, suggest the closest matches. When NAV data is missing for a date range, say which dates are affected.
 

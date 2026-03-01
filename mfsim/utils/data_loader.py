@@ -211,6 +211,17 @@ class MfApiDataLoader(BaseDataLoader):
         """Write a NAV DataFrame to a parquet cache file."""
         df.to_parquet(cache_path, index=False)
 
+    def _normalize_nav_df(self, nav_df: pd.DataFrame) -> pd.DataFrame:
+        """Normalize NAV data into a strict, ascending (date, nav) DataFrame."""
+        if "date" not in nav_df.columns or "nav" not in nav_df.columns:
+            raise ValueError(f"NAV data missing required columns. Got: {list(nav_df.columns)}")
+
+        nav_df = nav_df.copy()
+        nav_df["date"] = pd.to_datetime(nav_df["date"], errors="coerce", dayfirst=True)
+        nav_df["nav"] = pd.to_numeric(nav_df["nav"], errors="coerce")
+        nav_df = nav_df.dropna(subset=["date", "nav"])
+        return nav_df.sort_values("date").reset_index(drop=True)
+
     def load_nav_data(self, fund_name) -> pd.DataFrame:
         """Fetch historical NAV data for a fund, using a local parquet cache.
 
@@ -237,15 +248,13 @@ class MfApiDataLoader(BaseDataLoader):
 
             if self._is_cache_valid(cache_path):
                 self.logger.info(f"Loading cached NAV data for {fund_name}")
-                return self._read_cache(cache_path)
+                return self._normalize_nav_df(self._read_cache(cache_path))
 
             # Fetch from API
             url = f"http://api.mfapi.in/mf/{scheme_code}"
             response = requests.get(url)
             json_data = response.json()
-            fund_df = pd.DataFrame.from_records(json_data["data"])
-            fund_df["date"] = pd.to_datetime(fund_df["date"], format="%d-%m-%Y")
-            fund_df["nav"] = fund_df["nav"].astype(float)
+            fund_df = self._normalize_nav_df(pd.DataFrame.from_records(json_data["data"]))
 
             # Write to cache
             self._write_cache(cache_path, fund_df)
